@@ -1,2 +1,0 @@
-# synctube-implementation
-Synctube implementation
