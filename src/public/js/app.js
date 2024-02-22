@@ -85,3 +85,53 @@ socket.on("room_change", (rooms) => {
         roomList.appendChild(li);
     })
 });
+
+// --------------------------------------- //
+
+// const appPlayer = document.getElementById("player");
+// const videoForm = appPlayer.querySelector("video_url");
+
+
+
+// function handleVideoUrlSubmit(event){
+//     event.preventDefault();
+//     const input = videoForm.querySelector("input");
+//     socket.emit("video_url_change", input.value);
+//     input.value = "";
+// }
+
+// videoForm.addEventListener("video_url_submit", handleVideoUrlSubmit);
+
+function pauseVideo(){
+    player.pauseVideo();
+}
+function playVideo(){
+    player.playVideo();
+}
+function getCurrentTime(){
+    player.getCurrentTime();
+}
+
+socket.on("video_url_change", video_url => {
+    player.loadVideoByUrl(video_url);
+});
+
+socket.on("player_status_change", (status, current_time) => {
+    // status는 마우스를 누르고 난 뒤의 상태
+    // -1 – 시작되지 않음
+    // 0 – 종료
+    // 1 – 재생 중
+    // 2 – 일시중지
+    // 3 – 버퍼링
+    // 5 – 동영상 신호
+    console.log(`status changed: ${status}`);
+    if (status === 2){
+        // player.seekTo(current_time,false)
+        pauseVideo();
+    }
+    else if (status === 1){
+        console.log(`time: ${current_time}`)
+        // player.seekTo(current_time,false)
+        playVideo();
+    }
+});

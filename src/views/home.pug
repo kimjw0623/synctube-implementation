@@ -26,6 +26,11 @@ html(lang="en")
                 form#msg
                     input(placeholder="message", required, type="text")
                     button Send
-
+            div#player
+                //- form#video_url
+                //-     input(placeholder="video url", required, type="text")
+                //-     button Send
+                script(src="/public/js/player.js")
+                
         script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js")

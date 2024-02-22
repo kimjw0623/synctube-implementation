@@ -72,7 +72,18 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         done();
     })
     socket.on("nickname", nickname => socket["nickname"] = nickname);
+
+    socket.on("player_status_change", (status, currentTime) => {
+        wsServer.sockets.emit("player_status_change", status, currentTime);
+        console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
+    });
+    socket.on("video_url_change", video_url => {
+        wsServer.sockets.emit("video_url_change", video_url);
+        console.log(`video url changed to ${video_url}`);
+    });
 });
+
+httpServer.listen(3000, handleListen);
 
 // const wss = new WebSocketServer({ server })
 
@@ -102,5 +113,4 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
 //     });
 // });
 
-httpServer.listen(3000, handleListen);
 
