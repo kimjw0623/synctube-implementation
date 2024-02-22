@@ -46,6 +46,11 @@ function countRoom(roomName){
     return wsServer.sockets.adapter.rooms.get(roomName)?.size;
 }
 
+function getYoutubeVideoId(url) {
+    var searchParams = new URLSearchParams(new URL(url).search);
+    return searchParams.get("v");
+}
+
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket["nickname"] = "Anon";
     // localStorage.setItem["ids",]; 아이디 리스트 보여주도록 구현
@@ -78,8 +83,9 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
     });
     socket.on("video_url_change", video_url => {
-        wsServer.sockets.emit("video_url_change", video_url);
-        console.log(`video url changed to ${video_url}`);
+        const video_id = getYoutubeVideoId(video_url);
+        wsServer.sockets.emit("video_id_change", video_id);
+        console.log(`video url changed to ${video_id}`);
     });
 });
 

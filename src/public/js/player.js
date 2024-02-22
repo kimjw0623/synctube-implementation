@@ -38,10 +38,3 @@ function onPlayerStateChange(event) {
 function stopVideo() {
     player.stopVideo();
 }
-
-
-
-// function stopVideo() {
-//     player.stopVideo();
-// }
-

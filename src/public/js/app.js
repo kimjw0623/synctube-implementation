@@ -88,19 +88,19 @@ socket.on("room_change", (rooms) => {
 
 // --------------------------------------- //
 
-// const appPlayer = document.getElementById("player");
-// const videoForm = appPlayer.querySelector("video_url");
+const appPlayer = document.getElementById("video_url");
+const videoForm = appPlayer.querySelector("form");
 
 
+function handleVideoUrlSubmit(event){
+    event.preventDefault();
+    const input = videoForm.querySelector("input");
+    socket.emit("video_url_change", input.value);
+    console.log("video changed! - submit")
+    input.value = "";
+}
 
-// function handleVideoUrlSubmit(event){
-//     event.preventDefault();
-//     const input = videoForm.querySelector("input");
-//     socket.emit("video_url_change", input.value);
-//     input.value = "";
-// }
-
-// videoForm.addEventListener("video_url_submit", handleVideoUrlSubmit);
+videoForm.addEventListener("submit", handleVideoUrlSubmit);
 
 function pauseVideo(){
     player.pauseVideo();
@@ -112,8 +112,9 @@ function getCurrentTime(){
     player.getCurrentTime();
 }
 
-socket.on("video_url_change", video_url => {
-    player.loadVideoByUrl(video_url);
+socket.on("video_id_change", video_id => {
+    console.log(`video_id: {video_id}`);
+    player.loadVideoById(mediaContentUrl=String(video_id));
 });
 
 socket.on("player_status_change", (status, current_time) => {
