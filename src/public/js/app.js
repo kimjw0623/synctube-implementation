@@ -46,10 +46,11 @@ function showRoom() {
 function handleRoomSubmit(event) {
     event.preventDefault();
     const input = form.querySelector("input");
-    socket.emit("enter_room", input.value, showRoom);
     roomName = input.value;
-
+    socket.emit("enter_room", input.value, showRoom);
+    socket.emit("get_server_status", roomName, socket.id);
     input.value = "";
+    
 }
 
 form.addEventListener("submit", handleRoomSubmit);
@@ -127,12 +128,37 @@ socket.on("player_status_change", (status, current_time) => {
     // 5 – 동영상 신호
     console.log(`status changed: ${status}`);
     if (status === 2){
-        // player.seekTo(current_time,false)
+        console.log(`stop: got time: ${current_time}, current: ${player.getCurrentTime()}`)
+        if (Math.abs(current_time - player.getCurrentTime()) > 1.0){
+            console.log("stop");
+            player.seekTo(current_time,true)
+        }
         pauseVideo();
     }
     else if (status === 1){
-        console.log(`time: ${current_time}`)
-        // player.seekTo(current_time,false)
+        console.log(`got time: ${current_time}, current: ${player.getCurrentTime()}`)
+        if (Math.abs(current_time - player.getCurrentTime()) > 1.0){
+            console.log("asdf");
+            player.seekTo(current_time,true)
+        }
         playVideo();
     }
 });
+
+function onPlayerStateChange(event) {
+    console.log(`start event: ${event}`)
+    const player_status = event.data;
+    const current_time = player.getCurrentTime();
+    socket.emit("player_status_change", roomName, player_status, current_time);
+}
+
+socket.on("server_status", (video_id, server_current_time) => {
+    console.log(`received ${video_id} |  ${server_current_time}`);
+    player.loadVideoById(mediaContentUrl = String(video_id), startSeconds = server_current_time);
+    //player.seekTo(server_current_time, true);
+    console.log("end!")
+});
+
+// 4. The API will call this function when the video player is ready.
+// function onPlayerReady(event) {
+// }

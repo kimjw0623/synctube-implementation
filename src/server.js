@@ -51,6 +51,9 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
+let server_video_id = 'M7lc1UVf-VE';
+let server_current_time = 0.0;
+
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket["nickname"] = "Anon";
     // localStorage.setItem["ids",]; 아이디 리스트 보여주도록 구현
@@ -63,6 +66,7 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         done();
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
         wsServer.sockets.emit("room_change", publicRooms());
+
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
@@ -78,14 +82,23 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     })
     socket.on("nickname", nickname => socket["nickname"] = nickname);
 
-    socket.on("player_status_change", (status, currentTime) => {
-        wsServer.sockets.emit("player_status_change", status, currentTime);
+    socket.on("player_status_change", (room, status, currentTime) => {
+        server_current_time = currentTime;
+        socket.to(room).emit("player_status_change", status, currentTime);
         console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
+        //if (status === 1 | status === 2){
+        
+        //}
     });
     socket.on("video_url_change", video_url => {
         const video_id = getYoutubeVideoId(video_url);
         wsServer.sockets.emit("video_id_change", video_id);
         console.log(`video url changed to ${video_id}`);
+        server_video_id = video_id;
+    });
+    socket.on("get_server_status", (room,socket_id) => {
+        wsServer.to(socket_id).emit("server_status", server_video_id, server_current_time);
+        console.log(`send ${server_video_id} | ${server_current_time}`)
     });
 });
 
