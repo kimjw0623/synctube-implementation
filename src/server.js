@@ -4,7 +4,6 @@ import http from "http";
 import {Server} from "socket.io";
 import {instrument} from '@socket.io/admin-ui';
 
-// import WebSocket, { WebSocketServer } from "ws";
 import express from "express";
 const app = express();
 
@@ -15,8 +14,6 @@ app.get("/", (_, res) => res.render("home"));
 app.get("/*", (_, res) => res.redirect("/"));
 
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
-
-// app.listen(3000, handleListen);
 
 const httpServer = http.createServer(app);
 const wsServer = new Server(httpServer, {
@@ -33,7 +30,6 @@ function publicRooms(){
     const sids = wsServer.sockets.adapter.sids;
     const rooms = wsServer.sockets.adapter.rooms;
     const publicRooms = [];
-    // console.log(sids.size, rooms.size);
     rooms.forEach((_, key) => {
         if(sids.get(key) === undefined){
             publicRooms.push(key);
@@ -51,12 +47,17 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
+let currentServerVideoId = 'M7lc1UVf-VE';
+let currentServerPlayerState = -1;
+let currentServerPlayerTime = 0;
+let currentServerPlayerVolume = 50;
 let server_video_id = 'M7lc1UVf-VE';
-let server_current_time = 0.0;
+let server_current_time = 0;
+
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket["nickname"] = "Anon";
-    // localStorage.setItem["ids",]; 아이디 리스트 보여주도록 구현
+    // TODO: 아이디 리스트 보여주도록 구현
     wsServer.sockets.emit("room_change", publicRooms()); // 처음 입장했을 떄 방 상태 보여줄 수 있음!
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
@@ -66,7 +67,6 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         done();
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
         wsServer.sockets.emit("room_change", publicRooms());
-
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
@@ -81,14 +81,12 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         done();
     })
     socket.on("nickname", nickname => socket["nickname"] = nickname);
+    // -----------------------------------------
 
     socket.on("player_status_change", (room, status, currentTime) => {
         server_current_time = currentTime;
         socket.to(room).emit("player_status_change", status, currentTime);
-        console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
-        //if (status === 1 | status === 2){
-        
-        //}
+        // console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
     });
     socket.on("video_url_change", video_url => {
         const video_id = getYoutubeVideoId(video_url);
@@ -103,33 +101,3 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
 });
 
 httpServer.listen(3000, handleListen);
-
-// const wss = new WebSocketServer({ server })
-
-// const sockets = [];
-
-// wss.on("connection", (socket) => {
-//     sockets.push(socket);
-//     socket["nickname"] = "Anon";
-//     console.log("connected to browser!")
-//     socket.on("close", () => {
-//         console.log("disconnected from browser!");
-//     });
-//     socket.on("message", (msg) => {
-//         const messageString = msg.toString('utf8');
-//         console.log(messageString);
-//         const message = JSON.parse(messageString);
-//         switch (message.type) {
-//             case "new_message":
-//                 sockets.forEach((aSocket) =>
-//                     aSocket.send(`${socket.nickname}: ${message.payload}`)
-//                 );
-//                 break;
-//             case "nickname":
-//                 socket["nickname"] = message.payload;
-//                 break;
-//         }
-//     });
-// });
-
-

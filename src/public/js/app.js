@@ -91,7 +91,8 @@ socket.on("room_change", (rooms) => {
 
 const appPlayer = document.getElementById("video_url");
 const videoForm = appPlayer.querySelector("form");
-
+let lastPlayerState = -1;
+let isEvent = false;
 
 function handleVideoUrlSubmit(event){
     event.preventDefault();
@@ -126,7 +127,7 @@ socket.on("player_status_change", (status, current_time) => {
     // 2 – 일시중지
     // 3 – 버퍼링
     // 5 – 동영상 신호
-    console.log(`status changed: ${status}`);
+    console.log(`status changed: ${status} | current_status: ${player.getPlayerState()}`);
     if (status === 2){
         console.log(`stop: got time: ${current_time}, current: ${player.getCurrentTime()}`)
         if (Math.abs(current_time - player.getCurrentTime()) > 1.0){
@@ -146,19 +147,27 @@ socket.on("player_status_change", (status, current_time) => {
 });
 
 function onPlayerStateChange(event) {
-    console.log(`start event: ${event}`)
-    const player_status = event.data;
-    const current_time = player.getCurrentTime();
-    socket.emit("player_status_change", roomName, player_status, current_time);
+    if(isEvent){   
+        console.log(event);
+        const player_status = event.data; //player.getPlayerState();// event.data;
+        const current_time = player.getCurrentTime();
+        socket.emit("player_status_change", roomName, player_status, current_time);
+        lastPlayerState =  event.data;
+    }
 }
 
 socket.on("server_status", (video_id, server_current_time) => {
     console.log(`received ${video_id} |  ${server_current_time}`);
     player.loadVideoById(mediaContentUrl = String(video_id), startSeconds = server_current_time);
-    //player.seekTo(server_current_time, true);
+    setTimeout(function() {
+        isEvent = true;
+        console.log("now stateChange event enable!");
+    }, 1000);    
+    
     console.log("end!")
 });
 
 // 4. The API will call this function when the video player is ready.
 // function onPlayerReady(event) {
+//     console.log("readhy")
 // }
