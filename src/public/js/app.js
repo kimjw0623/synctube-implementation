@@ -48,7 +48,7 @@ function handleRoomSubmit(event) {
     const input = form.querySelector("input");
     roomName = input.value;
     socket.emit("enter_room", input.value, showRoom);
-    socket.emit("get_server_status", roomName, socket.id);
+    socket.emit("initState", socket.id);
     input.value = "";
     
 }
@@ -92,82 +92,90 @@ socket.on("room_change", (rooms) => {
 const appPlayer = document.getElementById("video_url");
 const videoForm = appPlayer.querySelector("form");
 let lastPlayerState = -1;
-let isEvent = false;
+let isStateChangeEvent = false;
+let lastReportedTime = 0;
+
+// 현재 재생 시간을 정기적으로 서버에 보고하는 함수
+function reportCurrentTime() {
+    setInterval(() => {
+        var currentTime = player.getCurrentTime();
+        if (player.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(currentTime - lastReportedTime) >= 1) {
+            socket.emit("syncTime", currentTime);
+            lastReportedTime = currentTime;
+        }
+    }, 1000); // 매 1초마다 실행
+}
+
+// block onPlayerStateChange for {timeOut} ms
+function blockStateChange(targetFunction, timeOut=500){
+    isStateChangeEvent = false;
+    targetFunction();
+    setTimeout(function() {
+        isStateChangeEvent = true;
+        console.log("now stateChange event enable!");
+    }, timeOut);  
+}
+
+function onPlayerStateChange(event) {
+    if (isStateChangeEvent) { // 초기화 중이 아닐 때만 서버로 상태 변경 알림
+        socket.emit("stateChange", {
+            room: roomName,
+            playerState: event.data,
+            currentTime: player.getCurrentTime(),
+        });
+    }
+}
 
 function handleVideoUrlSubmit(event){
     event.preventDefault();
     const input = videoForm.querySelector("input");
-    socket.emit("video_url_change", input.value);
+    socket.emit("videoUrlChange", {
+        videoId: input.value,
+        room: roomName
+    });
     console.log("video changed! - submit")
     input.value = "";
 }
 
 videoForm.addEventListener("submit", handleVideoUrlSubmit);
 
-function pauseVideo(){
-    player.pauseVideo();
-}
-function playVideo(){
-    player.playVideo();
-}
-function getCurrentTime(){
-    player.getCurrentTime();
-}
-
-socket.on("video_id_change", video_id => {
-    console.log(`video_id: {video_id}`);
-    player.loadVideoById(mediaContentUrl=String(video_id));
+socket.on("videoUrlChange", videoId => {
+    blockStateChange(function () {
+        player.loadVideoById(mediaContentUrl = String(videoId));
+        player.playVideo();
+    });
 });
 
-socket.on("player_status_change", (status, current_time) => {
-    // status는 마우스를 누르고 난 뒤의 상태
-    // -1 – 시작되지 않음
-    // 0 – 종료
-    // 1 – 재생 중
-    // 2 – 일시중지
-    // 3 – 버퍼링
-    // 5 – 동영상 신호
-    console.log(`status changed: ${status} | current_status: ${player.getPlayerState()}`);
-    if (status === 2){
-        console.log(`stop: got time: ${current_time}, current: ${player.getCurrentTime()}`)
-        if (Math.abs(current_time - player.getCurrentTime()) > 1.0){
-            console.log("stop");
-            player.seekTo(current_time,true)
+socket.on("initState", (data) => {
+    // initialize with server data
+    blockStateChange(function () {
+        player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.currentTime);
+        if (data.playerState === YT.PlayerState.PLAYING) {
+            // player.seekTo(data.currentTime, true);
+            player.playVideo();
+        } else if (data.playerState === YT.PlayerState.PAUSED) {
+            // player.seekTo(data.currentTime, true);
+            player.pauseVideo();
         }
-        pauseVideo();
-    }
-    else if (status === 1){
-        console.log(`got time: ${current_time}, current: ${player.getCurrentTime()}`)
-        if (Math.abs(current_time - player.getCurrentTime()) > 1.0){
-            console.log("asdf");
-            player.seekTo(current_time,true)
+        console.log(data);
+    });
+    reportCurrentTime();
+    console.log("init done!");
+});
+
+socket.on("stateChange", data => {
+    const serverTime = data.currentTime;
+    const serverStatus = data.playerState;
+
+    blockStateChange(function () {
+        if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
+            player.seekTo(serverTime, true);
         }
-        playVideo();
-    }
+        if (serverStatus === YT.PlayerState.PLAYING) {
+            player.playVideo();
+        }
+        else if (serverStatus === YT.PlayerState.PAUSED) {
+            player.pauseVideo();
+        }
+    });
 });
-
-function onPlayerStateChange(event) {
-    if(isEvent){   
-        console.log(event);
-        const player_status = event.data; //player.getPlayerState();// event.data;
-        const current_time = player.getCurrentTime();
-        socket.emit("player_status_change", roomName, player_status, current_time);
-        lastPlayerState =  event.data;
-    }
-}
-
-socket.on("server_status", (video_id, server_current_time) => {
-    console.log(`received ${video_id} |  ${server_current_time}`);
-    player.loadVideoById(mediaContentUrl = String(video_id), startSeconds = server_current_time);
-    setTimeout(function() {
-        isEvent = true;
-        console.log("now stateChange event enable!");
-    }, 1000);    
-    
-    console.log("end!")
-});
-
-// 4. The API will call this function when the video player is ready.
-// function onPlayerReady(event) {
-//     console.log("readhy")
-// }

@@ -47,13 +47,12 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-let currentServerVideoId = 'M7lc1UVf-VE';
-let currentServerPlayerState = -1;
-let currentServerPlayerTime = 0;
-let currentServerPlayerVolume = 50;
-let server_video_id = 'M7lc1UVf-VE';
-let server_current_time = 0;
-
+let currentServerState = {
+    videoId: "M7lc1UVf-VE",
+    playerState: -1,
+    playerTime: 0,
+    playerVolume: 20,
+}
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket["nickname"] = "Anon";
@@ -83,20 +82,31 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket.on("nickname", nickname => socket["nickname"] = nickname);
     // -----------------------------------------
 
-    socket.on("player_status_change", (room, status, currentTime) => {
-        server_current_time = currentTime;
-        socket.to(room).emit("player_status_change", status, currentTime);
-        // console.log(`player status changed to ${status}, currentTime is ${currentTime}`);
+    // init player
+    socket.on("initState", (socketId) => {
+        // emit to client with certain socketId
+        wsServer.to(socketId).emit("initState", currentServerState);
     });
-    socket.on("video_url_change", video_url => {
-        const video_id = getYoutubeVideoId(video_url);
-        wsServer.sockets.emit("video_id_change", video_id);
-        console.log(`video url changed to ${video_id}`);
-        server_video_id = video_id;
+    socket.on("stateChange", (data) => {
+        currentServerState.playerState = data.playerState;
+        currentServerState.currentTime = data.currentTime;
+        socket.to(data.room).emit("stateChange", data);
     });
-    socket.on("get_server_status", (room,socket_id) => {
-        wsServer.to(socket_id).emit("server_status", server_video_id, server_current_time);
-        console.log(`send ${server_video_id} | ${server_current_time}`)
+    socket.on("syncTime", (currentTime) => {
+        // update serverTime
+        currentServerState.currentTime = currentTime;
+        const data = {
+            currentTime: currentTime,
+            playerState: currentServerState.playerState
+        };
+        socket.to(data.room).emit("stateChange", data);
+        console.log(`time: ${currentTime}`)
+    });
+    socket.on("videoUrlChange", (data) => {
+        const videoId = getYoutubeVideoId(data.videoId)
+        currentServerState.videoId = videoId;
+        // send to all members in room
+        wsServer.to(data.room).emit("videoUrlChange", videoId);
     });
 });
 

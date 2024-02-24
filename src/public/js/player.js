@@ -1,4 +1,3 @@
-// const socket = io.connect("http://localhost:3000");
 var tag = document.createElement('script');
 
 tag.src = "https://www.youtube.com/iframe_api";
@@ -14,19 +13,8 @@ function onYouTubeIframeAPIReady() {
         width: '640',
         videoId: 'M7lc1UVf-VE',
         events: {
-            // 'onReady': onPlayerReady,
+            //'onReady': onPlayerReady,
             'onStateChange': onPlayerStateChange
         }
     });
-}
-
-
-
-// 5. The API calls this function when the player's state changes.
-//    The function indicates that when playing a video (state=1),
-//    the player should play for six seconds and then stop.
-var done = false;
-
-function stopVideo() {
-    player.stopVideo();
 }
