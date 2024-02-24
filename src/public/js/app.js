@@ -2,7 +2,7 @@ const socket = io.connect("http://localhost:3000");// io();
 
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
-const room = document.getElementById("room")
+const room = document.getElementById("room");
 
 room.hidden = true;
 let roomName;
@@ -94,6 +94,8 @@ const videoForm = appPlayer.querySelector("form");
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
+document.getElementById("player").style.display = "none";
+appPlayer.style.display = "none";
 
 // 현재 재생 시간을 정기적으로 서버에 보고하는 함수
 function reportCurrentTime() {
@@ -159,6 +161,8 @@ socket.on("initState", (data) => {
         }
         console.log(data);
     });
+    document.getElementById("player").style.display = "";
+    appPlayer.style.display = "";
     reportCurrentTime();
     console.log("init done!");
 });

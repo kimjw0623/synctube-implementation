@@ -1,8 +1,8 @@
-import path from 'path';
+import path from "path";
 // const __dirname = path.resolve();
 import http from "http";
 import {Server} from "socket.io";
-import {instrument} from '@socket.io/admin-ui';
+import {instrument} from "@socket.io/admin-ui";
 
 import express from "express";
 const app = express();
