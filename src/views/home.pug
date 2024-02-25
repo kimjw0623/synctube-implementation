@@ -3,6 +3,8 @@ html(lang="en")
     head
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+        <meta HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">  
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title Synctube
         link(rel="stylesheet", href="https://unpkg.com/mvp.css")
@@ -28,10 +30,13 @@ html(lang="en")
                     button Send
             div#player
                 script(src="/public/js/player.js")
-            div#video_url
+            div#videoUrl
                 form
                     input(placeholder="video url", required, type="text")
-                    button Send
+                    button Play
+                h3 Comments:
+            div(id="comment", sytle="overflow:scroll; width:350px; height:200px;")
+                ul
                 
         script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js")

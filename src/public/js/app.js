@@ -1,4 +1,4 @@
-const socket = io.connect("http://localhost:3000");// io();
+const socket = io.connect("http://localhost:3000/?rand=" + Math.round(Math.random() * 10000000)); // io();
 
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
@@ -89,27 +89,31 @@ socket.on("room_change", (rooms) => {
 
 // --------------------------------------- //
 
-const appPlayer = document.getElementById("video_url");
+const appPlayer = document.getElementById("videoUrl");
 const videoForm = appPlayer.querySelector("form");
+const commentDiv = document.getElementById("comment");
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
+let currentTime = 0;
 document.getElementById("player").style.display = "none";
 appPlayer.style.display = "none";
 
 // 현재 재생 시간을 정기적으로 서버에 보고하는 함수
 function reportCurrentTime() {
     setInterval(() => {
-        var currentTime = player.getCurrentTime();
-        if (player.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(currentTime - lastReportedTime) >= 1) {
-            socket.emit("syncTime", currentTime);
-            lastReportedTime = currentTime;
+        currentTime = player.getCurrentTime();
+        if (true) {
+            if (Math.abs(currentTime - lastReportedTime) >= 1) {
+                socket.emit("syncTime", roomName, currentTime);
+                lastReportedTime = currentTime;
+            } //player.getPlayerState() === YT.PlayerState.PLAYING && 
         }
-    }, 1000); // 매 1초마다 실행
+    }, 2000);
 }
 
 // block onPlayerStateChange for {timeOut} ms
-function blockStateChange(targetFunction, timeOut=500){
+function blockStateChange(targetFunction, timeOut=250){
     isStateChangeEvent = false;
     targetFunction();
     setTimeout(function() {
@@ -119,7 +123,7 @@ function blockStateChange(targetFunction, timeOut=500){
 }
 
 function onPlayerStateChange(event) {
-    if (isStateChangeEvent) { // 초기화 중이 아닐 때만 서버로 상태 변경 알림
+    if (isStateChangeEvent && event.data != 3) { // 초기화 중이 아닐 때만 서버로 상태 변경 알림
         socket.emit("stateChange", {
             room: roomName,
             playerState: event.data,
@@ -139,24 +143,54 @@ function handleVideoUrlSubmit(event){
     input.value = "";
 }
 
+function listComments(videoId) {
+    const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
+    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
+    
+    const commentsUl = commentDiv.querySelector("ul");
+    commentsUl.remove();
+    const newCommentsUl = document.createElement("ul");
+    commentDiv.appendChild(newCommentsUl);
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            data.items.forEach(commentItem => {
+                const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
+                const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
+                const li = document.createElement("li");
+                li.innerText = `${author}: ${comment}`;
+                newCommentsUl.appendChild(li);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching comments:', error);
+        });
+}
+
 videoForm.addEventListener("submit", handleVideoUrlSubmit);
 
 socket.on("videoUrlChange", videoId => {
+    //console.log("get Urlchange!")
     blockStateChange(function () {
+        currentTime = 0;
+        listComments(videoId);
         player.loadVideoById(mediaContentUrl = String(videoId));
+        player.seekTo(0, true);
+        //console.log("changed!");
         player.playVideo();
     });
 });
 
 socket.on("initState", (data) => {
-    // initialize with server data
+    // initialize player state with server data
     blockStateChange(function () {
-        player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.currentTime);
+        listComments(data.videoId);
+        player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.playerTime);
+        // player.seekTo(, true);
+        console.log(data.playerTime);
         if (data.playerState === YT.PlayerState.PLAYING) {
-            // player.seekTo(data.currentTime, true);
             player.playVideo();
         } else if (data.playerState === YT.PlayerState.PAUSED) {
-            // player.seekTo(data.currentTime, true);
             player.pauseVideo();
         }
         console.log(data);
@@ -170,7 +204,7 @@ socket.on("initState", (data) => {
 socket.on("stateChange", data => {
     const serverTime = data.currentTime;
     const serverStatus = data.playerState;
-
+    // console.log(`get ${serverTime}, ${serverStatus}`);
     blockStateChange(function () {
         if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
             player.seekTo(serverTime, true);
@@ -180,6 +214,16 @@ socket.on("stateChange", data => {
         }
         else if (serverStatus === YT.PlayerState.PAUSED) {
             player.pauseVideo();
+        }
+    });
+});
+
+socket.on("SyncTime", data => {
+    const serverTime = data.currentTime;
+    console.log(`get ${serverTime}`);
+    blockStateChange(function () {
+        if (Math.abs(serverTime - player.getCurrentTime()) > 0.5) {
+            player.seekTo(serverTime, true);
         }
     });
 });

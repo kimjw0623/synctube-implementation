@@ -11,7 +11,8 @@ app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
 app.get("/", (_, res) => res.render("home"));
-app.get("/*", (_, res) => res.redirect("/"));
+// app.get("/*", (_, res) => res.redirect("/"));
+app.get("/test/", (_, res) => res.render("test"));
 
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
 
@@ -60,6 +61,7 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     wsServer.sockets.emit("room_change", publicRooms()); // 처음 입장했을 떄 방 상태 보여줄 수 있음!
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
+        // console.log(currentServerState);
     });
     socket.on("enter_room", (roomName, done) => {
         socket.join(roomName);
@@ -89,22 +91,23 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     });
     socket.on("stateChange", (data) => {
         currentServerState.playerState = data.playerState;
-        currentServerState.currentTime = data.currentTime;
-        socket.to(data.room).emit("stateChange", data);
+        currentServerState.playerTime = data.currentTime;
+        wsServer.to(data.room).emit("stateChange", data);
     });
-    socket.on("syncTime", (currentTime) => {
+    socket.on("syncTime", (room, currentTime) => {
         // update serverTime
-        currentServerState.currentTime = currentTime;
+        currentServerState.playerTime = currentTime;
         const data = {
             currentTime: currentTime,
             playerState: currentServerState.playerState
         };
-        socket.to(data.room).emit("stateChange", data);
+        wsServer.to(room).emit("SyncTime", data);
         console.log(`time: ${currentTime}`)
     });
     socket.on("videoUrlChange", (data) => {
         const videoId = getYoutubeVideoId(data.videoId)
         currentServerState.videoId = videoId;
+        currentServerState.playerTime = 0;
         // send to all members in room
         wsServer.to(data.room).emit("videoUrlChange", videoId);
     });
