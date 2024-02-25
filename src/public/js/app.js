@@ -90,8 +90,10 @@ socket.on("room_change", (rooms) => {
 // --------------------------------------- //
 
 const appPlayer = document.getElementById("videoUrl");
-const videoForm = appPlayer.querySelector("form");
+const videoForm = appPlayer.querySelector("#playNow");
+const playlistForm = appPlayer.querySelector("#addPlaylist");
 const commentDiv = document.getElementById("comment");
+
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
@@ -167,7 +169,19 @@ function listComments(videoId) {
         });
 }
 
+function handlePlaylistSubmit(event) {
+    event.preventDefault();
+    const input = playlistForm.querySelector("input");
+    socket.emit("addPlaylist", {
+        videoId: input.value,
+        room: roomName
+    });
+    console.log("add playlist! - submit")
+    input.value = "";
+}
+
 videoForm.addEventListener("submit", handleVideoUrlSubmit);
+playlistForm.addEventListener("submit", handlePlaylistSubmit);
 
 socket.on("videoUrlChange", videoId => {
     //console.log("get Urlchange!")
@@ -225,5 +239,17 @@ socket.on("SyncTime", data => {
         if (Math.abs(serverTime - player.getCurrentTime()) > 0.5) {
             player.seekTo(serverTime, true);
         }
+    });
+});
+
+socket.on("updatePlaylist", (data) => {
+    const playlistList = playlistForm.querySelector("ol");
+    playlistList.remove();
+    const newPlaylistList = document.createElement("ol");
+    playlistForm.appendChild(newPlaylistList);
+    data.forEach(videoItem => {
+        const li = document.createElement("li");
+        li.innerText = `${videoItem}`;
+        newPlaylistList.appendChild(li);
     });
 });

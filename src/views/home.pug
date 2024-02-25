@@ -31,11 +31,15 @@ html(lang="en")
             div#player
                 script(src="/public/js/player.js")
             div#videoUrl
-                form
+                form#playNow
                     input(placeholder="video url", required, type="text")
-                    button Play
+                    button Play now
+                form#addPlaylist
+                    input(placeholder="video url", required, type="text")
+                    button Add playlist
+                    ol
+            div(id="comment", overflowY = "scroll", maxHeight="500px")
                 h3 Comments:
-            div(id="comment", sytle="overflow:scroll; width:350px; height:200px;")
                 ul
                 
         script(src="/socket.io/socket.io.js")

@@ -48,11 +48,13 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
+// ["K49vI-88QlU","M7lc1UVf-VE","4fjqMq_nPAo"]
 let currentServerState = {
-    videoId: "M7lc1UVf-VE",
+    videoId: "CRMOwaIkYSY",
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
+    playlist: ["M7lc1UVf-VE","4fjqMq_nPAo","dHwhfpN--Bk"],
 }
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
@@ -88,11 +90,18 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket.on("initState", (socketId) => {
         // emit to client with certain socketId
         wsServer.to(socketId).emit("initState", currentServerState);
+        wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });
     socket.on("stateChange", (data) => {
         currentServerState.playerState = data.playerState;
         currentServerState.playerTime = data.currentTime;
-        wsServer.to(data.room).emit("stateChange", data);
+        if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
+            console.log("end!!!!!!!!!!!!!!!!")
+            currentServerState.videoId = currentServerState.playlist.shift();
+            wsServer.to(data.room).emit("videoUrlChange", currentServerState.videoId);
+            wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
+        }
+        else {wsServer.to(data.room).emit("stateChange", data);}
     });
     socket.on("syncTime", (room, currentTime) => {
         // update serverTime
@@ -111,6 +120,11 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         // send to all members in room
         wsServer.to(data.room).emit("videoUrlChange", videoId);
     });
+    socket.on("addPlaylist", (data) => {
+        const playlistVideoId = getYoutubeVideoId(data.videoId);
+        currentServerState.playlist.push(playlistVideoId);
+        wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
+    })
 });
 
 httpServer.listen(3000, handleListen);
