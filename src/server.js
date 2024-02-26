@@ -2,7 +2,7 @@ import path from "path";
 // const __dirname = path.resolve();
 import http from "http";
 import {Server} from "socket.io";
-import {instrument} from "@socket.io/admin-ui";
+//import {instrument} from "@socket.io/admin-ui";
 
 import express from "express";
 const app = express();
@@ -10,7 +10,10 @@ const app = express();
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
-app.get("/", (_, res) => res.render("home"));
+app.get("/", (_, res) => res.render("home", {
+    playlist: ["qwer","asdf"], // Make sure this is an array
+    chatMessages: ["qwer","asdf"] // Make sure this is an array
+  }));
 // app.get("/*", (_, res) => res.redirect("/"));
 app.get("/test/", (_, res) => res.render("test", {
     playlist: ["qwer","asdf"], // Make sure this is an array
@@ -26,9 +29,9 @@ const wsServer = new Server(httpServer, {
         credentials: true,
     },
 });
-instrument(wsServer, {
-    auth: false
-});
+// instrument(wsServer, {
+//     auth: false
+// });
 
 function publicRooms(){
     const sids = wsServer.sockets.adapter.sids;
@@ -43,7 +46,7 @@ function publicRooms(){
 }
 
 function countRoom(roomName){
-    return wsServer.sockets.adapter.rooms.get(roomName)?.size;
+    return wsServer.sockets.adapter.rooms.get(roomName).size;
 }
 
 function getYoutubeVideoId(url) {

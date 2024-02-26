@@ -5,7 +5,7 @@ const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 
 room.hidden = true;
-let roomName;
+let roomName = 1;
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -90,9 +90,10 @@ socket.on("room_change", (rooms) => {
 // --------------------------------------- //
 
 const appPlayer = document.getElementById("videoUrl");
-const videoForm = appPlayer.querySelector("#playNow");
-const playlistForm = appPlayer.querySelector("#addPlaylist");
+const playButton = appPlayer.querySelector("#playButton");
+const playlistForm = document.querySelector("#playlistForm");
 const commentDiv = document.getElementById("comment");
+const playlistChat = document.getElementById("playlistChat");
 
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
@@ -100,6 +101,8 @@ let lastReportedTime = 0;
 let currentTime = 0;
 document.getElementById("player").style.display = "none";
 appPlayer.style.display = "none";
+playlistChat.style.display = "none";
+
 
 // 현재 재생 시간을 정기적으로 서버에 보고하는 함수
 function reportCurrentTime() {
@@ -136,7 +139,7 @@ function onPlayerStateChange(event) {
 
 function handleVideoUrlSubmit(event){
     event.preventDefault();
-    const input = videoForm.querySelector("input");
+    const input = appPlayer.querySelector("#playNow");
     socket.emit("videoUrlChange", {
         videoId: input.value,
         room: roomName
@@ -169,19 +172,19 @@ function listComments(videoId) {
         });
 }
 
-function handlePlaylistSubmit(event) {
-    event.preventDefault();
-    const input = playlistForm.querySelector("input");
-    socket.emit("addPlaylist", {
-        videoId: input.value,
-        room: roomName
-    });
-    console.log("add playlist! - submit")
-    input.value = "";
-}
+// function handlePlaylistSubmit(event) {
+//     event.preventDefault();
+//     const input = playlistForm.querySelector("input");
+//     socket.emit("addPlaylist", {
+//         videoId: input.value,
+//         room: roomName
+//     });
+//     console.log("add playlist! - submit")
+//     input.value = "";
+// }
 
-videoForm.addEventListener("submit", handleVideoUrlSubmit);
-playlistForm.addEventListener("submit", handlePlaylistSubmit);
+playButton.addEventListener("click", handleVideoUrlSubmit);
+// playlistForm.addEventListener("submit", handlePlaylistSubmit);
 
 socket.on("videoUrlChange", videoId => {
     //console.log("get Urlchange!")
@@ -211,6 +214,7 @@ socket.on("initState", (data) => {
     });
     document.getElementById("player").style.display = "";
     appPlayer.style.display = "";
+    playlistChat.style.display = "";
     reportCurrentTime();
     console.log("init done!");
 });
@@ -244,12 +248,21 @@ socket.on("SyncTime", data => {
 
 socket.on("updatePlaylist", (data) => {
     const playlistList = playlistForm.querySelector("ol");
+    const sortableList = document.getElementById("sortableList");
     playlistList.remove();
     const newPlaylistList = document.createElement("ol");
-    playlistForm.appendChild(newPlaylistList);
+    newPlaylistList.className = "list-group"
+    newPlaylistList.id = "sortable-list"
+    playlistForm.insertBefore(newPlaylistList,sortableList);
     data.forEach(videoItem => {
         const li = document.createElement("li");
         li.innerText = `${videoItem}`;
+        li.className = "list-group-item";
         newPlaylistList.appendChild(li);
     });
+    var sortable = new Sortable(document.getElementById('sortable-list'), {
+        animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
+        ghostClass: 'sortable-ghost' // Class name for the drop placeholder
+    });
+    // get first child: playlistForm.querySelector("ol").firstChild.innerText
 });

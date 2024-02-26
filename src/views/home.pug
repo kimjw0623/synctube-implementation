@@ -6,12 +6,48 @@ html(lang="en")
         <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
         <meta HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">  
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css')
         title Synctube
-        link(rel="stylesheet", href="https://unpkg.com/mvp.css")
+        link(rel='stylesheet', href='/public/css/test.css')
     body
-        header
-            h1 Synctube
+        .container-fluid
+            .row 
+                .input-group.p-2#videoUrl
+                    .col.text-left.py-2 SYNCTUBE
+                    input.form-control(id="playNow",type='text', placeholder='Enter media url here').py-1
+                    .input-group-append.px-3
+                        button.btn.btn-outline-light(id="playButton",type='button',class="round") Play now
+                        button.btn.btn-outline-light(id="addButton",type='button',class="round") Add list
+            .row.flex-grow-1
+                .col-lg-8.p-0#player
+                    script(src="/public/js/player.js")
+                .col-lg-4#playlistChat
+                    .playlist-chat-container
+                        .container.mt-2.mb-2#playlistForm
+                            h5 PlayList
+                            ol#sortable-list.list-group
+                                li.list-group-item Item 1
+                                li.list-group-item Item 2
 
+                            script(src='https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js')#sortableList
+                            script.
+                                // Initialize the sortable list
+                                var sortable = new Sortable(document.getElementById('sortable-list'), {
+                                animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
+                                ghostClass: 'sortable-ghost' // Class name for the drop placeholder
+                                });
+                        .chat-container.mx-2(id="room",class="rounded")
+                            .chat-messages#chatMessages
+                                each message, index in chatMessages
+                                    .chat-message(key=index)
+                                        // - .username #{message}
+                                        //- .username #{message.username}
+                                        //- .timestamp #{message.timestamp}
+                                        .message #{message}
+                            .chat-input-container
+                                form#chatForm
+                                input.form-control(type='text', placeholder='Type a message...', required)
+                                button.btn.btn-primary(type='submit') Send
         main
             div#welcome
                 form 
@@ -19,25 +55,6 @@ html(lang="en")
                     button Enter Room
                 h4 Open Rooms:
                 ul
-            div#room
-                h3
-                ul
-                form#name
-                    input(placeholder="name", required, type="text")
-                    button Save
-                form#msg
-                    input(placeholder="message", required, type="text")
-                    button Send
-            div#player
-                script(src="/public/js/player.js")
-            div#videoUrl
-                form#playNow
-                    input(placeholder="video url", required, type="text")
-                    button Play now
-                form#addPlaylist
-                    input(placeholder="video url", required, type="text")
-                    button Add playlist
-                    ol
             div(id="comment", overflowY = "scroll", maxHeight="500px")
                 h3 Comments:
                 ul
