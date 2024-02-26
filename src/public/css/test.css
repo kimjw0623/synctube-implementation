@@ -7,8 +7,8 @@
 body, html {
     height: 100%;
     font-family: 'Arial', sans-serif;
-    background-color: #000;
-    color: #fff;
+    background-color: #164863; /* Light blue background */
+    color: #ddf2fd; /* Darker text for better contrast */
 }
 
 .container {
@@ -21,12 +21,13 @@ body, html {
     display: flex;
     align-items: center;
     padding: 10px;
-    background-color: #111;
+    background-color: #2e4f4f; /* Lighter blue for header */
 }
 
 .logo {
     font-weight: bold;
     margin-right: auto;
+    color: #333; /* Dark text for logo */
 }
 
 .media-input {
@@ -40,13 +41,17 @@ body, html {
 
 .playlist-btn, .chat-btn {
     background: none;
-    border: none;
-    color: #fff;
+    border: 1px solid #a4b8c4; /* Border for buttons */
+    color: #333; /* Dark text for buttons */
     margin-right: 5px;
+    padding: 5px 10px; /* Padding for buttons */
+    border-radius: 5px; /* Rounded corners for buttons */
+    cursor: pointer; /* Pointer cursor for buttons */
 }
 
 .user-icon {
     cursor: pointer;
+    color: #333; /* Dark icon for better visibility */
 }
 
 .main-content {
@@ -59,7 +64,7 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #222;
+    background-color: #d1e0e5; /* Light blue for video area */
 }
 
 .no-video {
@@ -68,14 +73,14 @@ body, html {
 
 .sidebar {
     width: 300px;
-    background-color: #181818;
+    background-color: #0c86f1; /* Different shade of light blue for sidebar */
     display: flex;
     flex-direction: column;
 }
 
 .playlist, .chat {
     padding: 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px #00a9ff; /* Light blue borders */
 }
 
 .chat-messages {
@@ -86,6 +91,9 @@ body, html {
     display: flex;
     align-items: center;
     margin-bottom: 5px;
+    background-color: #d1e0e5; /* Light blue for chat messages */
+    color: #333; /* Dark text for messages */
+    border-radius: 5px; /* Rounded corners for messages */
 }
 
 .user {
@@ -93,11 +101,72 @@ body, html {
 }
 
 .status {
-    color: red;
+    color: #5b9bd5; /* Blue color for status */
 }
 
 .footer {
     text-align: center;
     padding: 10px;
-    background-color: #111;
+    background-color: #d1e0e5; /* Light blue for footer */
+    color: #333; /* Dark text for footer */
+}
+
+.list-group-item {
+    background-color: #9ad6ea; /* Light blue for footer */
+    color: #333;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    /* height: 800px; */
+    background-color: #427d9d; /* White background for chat container */
+}
+
+.sortable-ghost {
+    background-color: #94c2ea;
+    opacity: 0.7;
+  }
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 5px;
+    background-color: #9bbec8; /* Light blue for chat message background */
+    border-radius: 5px;
+}
+
+.username {
+    font-weight: bold;
+    color: #333; /* Dark text for username */
+}
+
+.timestamp {
+    font-size: 0.8em;
+    color: #84dde9;
+}
+
+.chat-input-container {
+    margin-top: auto;
+}
+
+#chatForm {
+    display: flex;
+}
+
+#chatForm .form-control {
+    margin-right: 5px;
+    border: 1px solid #a4b8c4; /* Light blue border for input */
+}
+
+#chatForm .btn {
+    flex-shrink: 0;
+    background-color: #6face5; /* Blue background for send button */
+    color: #fff; /* White text for send button */
+    border: none; /* No border for send button */
 }

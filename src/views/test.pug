@@ -1,34 +1,76 @@
 doctype html
-html(lang="en")
+html(lang='en')
   head
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
     title SyncTube
-    link(rel="stylesheet" href="/public/css/test.css")
+    link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css')
+    // Optional: include your custom styles here
+    link(rel='stylesheet', href='/public/css/test.css')
   body
-    .container
-      header.header
-        .logo SYNC TUBE
-        input.media-input(type="text" placeholder="Enter media url here")
-        .user-controls
-          button.playlist-btn Playlist
-          button.chat-btn Chat
-          .user-icon &#128100;
+    .container-fluid
+      .row
+        .input-group.p-2
+          .col.text-left.py-2 SYNCTUBE
+          input.form-control(type='text', placeholder='Enter media url here').py-1
+          .input-group-append.px-3
+            button.btn.btn-outline-light(type='button',class="round") Playlist
+            button.btn.btn-outline-light(type='button',class="round") Chat
 
-      main.main-content
-        .video-area
-          .no-video No Video
-        aside.sidebar
-          .playlist
-            h3 Playlist
-            div No upcoming Videos
-          .chat
-            h3 Chat
-            .chat-messages
-              .chat-message
-                span.user P.J Kim
-                span.status &#11044;
-                // Repeat for each message
+      .row.flex-grow-1
+        .col-lg-8.p-0
+          script(src="/public/js/player.js")
+          //- .embed-responsive.embed-responsive-16by9
+          //-   iframe.embed-responsive-item(src='https://www.youtube.com/embed/VIDEO_ID', allowfullscreen='')
+          // Video details
+          .video-details.text-black.p-2 K-POP Piano Collection, 2023-11 | Kpop Piano Cover
 
-      footer.footer
-        | Room #766
+        .col-lg-4
+          .playlist-chat-container
+            .container.mt-2.mb-2(id="playlist")
+              h5 PlayList
+              ol#sortable-list.list-group
+                li.list-group-item Item 1
+                li.list-group-item Item 2
+                li.list-group-item Item 3
+                li.list-group-item Item 4
+                li.list-group-item Item 5
+
+              script(src='https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js')
+              script.
+                // Initialize the sortable list
+                var sortable = new Sortable(document.getElementById('sortable-list'), {
+                  animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
+                  ghostClass: 'sortable-ghost' // Class name for the drop placeholder
+                });
+            .chat-container.mx-2(id= "chat",class="rounded")
+              .chat-messages#chatMessages
+                each message, index in chatMessages
+                  .chat-message(key=index)
+                    // - .username #{message}
+                    //- .username #{message.username}
+                    //- .timestamp #{message.timestamp}
+                    .message #{message}
+              .chat-input-container
+                form#chatForm
+                  input.form-control(type='text', placeholder='Type a message...', required)
+                  button.btn.btn-primary(type='submit') Send
+            //- .row
+            //-   .col-md-8.offset-md-2
+            //-     .chat-container#chat
+            //-       each msg in messages
+            //-         .chat-message
+            //-           span.username #{msg.username}
+            //-           span.timestamp #{msg.timestamp}
+            //-           span.message-content #{msg.content}
+            //-     .input-group
+            //-       input(type='text' class='form-control' placeholder='Send a message...')
+            //-       button(type='button' class='btn btn-primary') Send
+              
+  //- footer
+  //-     .row.bg-info.text-white
+  //-     .col.text-center.py-2 Room #766
+
+script(src='https://code.jquery.com/jquery-3.3.1.slim.min.js')
+script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js')
+script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js')
