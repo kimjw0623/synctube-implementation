@@ -6,102 +6,55 @@
 
 body, html {
     height: 100%;
-    font-family: 'Arial', sans-serif;
-    background-color: #164863; /* Light blue background */
-    color: #ddf2fd; /* Darker text for better contrast */
+    /* font-family: 'Arial', sans-serif; */
+    background-color: #39323f; /* Light blue background */
+    color: #fff; /* Darker text for better contrast */
 }
 
-.container {
+.container{
     display: flex;
     flex-direction: column;
     height: 100%;
+}
+
+.playlist-container{
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+}
+
+.container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.visible-scrollbar {
+    display: block;
+    width: 10em;
+    overflow: auto;
+    height: 2em;
 }
 
 .header {
     display: flex;
     align-items: center;
     padding: 10px;
-    background-color: #2e4f4f; /* Lighter blue for header */
+    background-color: #39323f; /* Lighter blue for header */
 }
 
-.logo {
-    font-weight: bold;
-    margin-right: auto;
-    color: #333; /* Dark text for logo */
+.flex-grow-1 {
+    padding: 10px;
+    background-color: #1a1a1a; /* Lighter blue for header */
 }
 
-.media-input {
-    margin: 0 15px;
-}
-
-.user-controls {
-    display: flex;
-    align-items: center;
-}
-
-.playlist-btn, .chat-btn {
-    background: none;
-    border: 1px solid #a4b8c4; /* Border for buttons */
-    color: #333; /* Dark text for buttons */
-    margin-right: 5px;
-    padding: 5px 10px; /* Padding for buttons */
-    border-radius: 5px; /* Rounded corners for buttons */
-    cursor: pointer; /* Pointer cursor for buttons */
-}
-
-.user-icon {
-    cursor: pointer;
-    color: #333; /* Dark icon for better visibility */
-}
-
-.main-content {
-    flex-grow: 1;
-    display: flex;
-}
-
-.video-area {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #d1e0e5; /* Light blue for video area */
-}
-
-.no-video {
-    font-size: 2rem;
-}
-
-.sidebar {
-    width: 300px;
-    background-color: #0c86f1; /* Different shade of light blue for sidebar */
-    display: flex;
-    flex-direction: column;
-}
-
-.playlist, .chat {
-    padding: 20px;
-    border-bottom: 1px #00a9ff; /* Light blue borders */
+#chatForm .btn {
+    flex-shrink: 0;
+    background-color: #36383a; /* Blue background for send button */
+    color: #fff; /* White text for send button */
+    border: none; /* No border for send button */
 }
 
 .chat-messages {
     margin-top: 10px;
-}
-
-.chat-message {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-    background-color: #d1e0e5; /* Light blue for chat messages */
-    color: #333; /* Dark text for messages */
-    border-radius: 5px; /* Rounded corners for messages */
-}
-
-.user {
-    margin-right: auto;
-}
-
-.status {
-    color: #5b9bd5; /* Blue color for status */
 }
 
 .footer {
@@ -112,43 +65,30 @@ body, html {
 }
 
 .list-group-item {
-    background-color: #9ad6ea; /* Light blue for footer */
-    color: #333;
+    background-color: #535555; /* Light blue for footer */
+    color: #ffffff;
 }
 
 .chat-container {
     display: flex;
     flex-direction: column;
-    /* height: 800px; */
-    background-color: #427d9d; /* White background for chat container */
+    height: 500px;
+    background-color: #39323f; /* White background for chat container */
+}
+
+.comment-container {
+    background-color: #39323f; /* White background for chat container */
 }
 
 .sortable-ghost {
-    background-color: #94c2ea;
+    background-color: #cfd3d6;
     opacity: 0.7;
-  }
+}
 
 .chat-messages {
     flex-grow: 1;
     overflow-y: auto;
     padding: 10px;
-}
-
-.chat-message {
-    margin-bottom: 10px;
-    padding: 5px;
-    background-color: #9bbec8; /* Light blue for chat message background */
-    border-radius: 5px;
-}
-
-.username {
-    font-weight: bold;
-    color: #333; /* Dark text for username */
-}
-
-.timestamp {
-    font-size: 0.8em;
-    color: #84dde9;
 }
 
 .chat-input-container {
@@ -162,11 +102,4 @@ body, html {
 #chatForm .form-control {
     margin-right: 5px;
     border: 1px solid #a4b8c4; /* Light blue border for input */
-}
-
-#chatForm .btn {
-    flex-shrink: 0;
-    background-color: #6face5; /* Blue background for send button */
-    color: #fff; /* White text for send button */
-    border: none; /* No border for send button */
 }

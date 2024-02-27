@@ -60,7 +60,7 @@ let currentServerState = {
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: ["M7lc1UVf-VE","4fjqMq_nPAo","dHwhfpN--Bk"],
+    playlist: ["M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk"],
 }
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:

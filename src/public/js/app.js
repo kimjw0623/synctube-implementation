@@ -3,6 +3,7 @@ const socket = io.connect("http://localhost:3000/?rand=" + Math.round(Math.rando
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
+const chatForm = document.getElementById("chatForm");
 
 room.hidden = true;
 let roomName = 1;
@@ -16,7 +17,7 @@ function addMessage(message) {
 
 function handleMessageSubmit(event){
     event.preventDefault();
-    const input = room.querySelector("#msg input");
+    const input = chatForm.querySelector("input");
     const value = input.value
     socket.emit("new_message", input.value, roomName, () => {
         addMessage(`You: ${value}`); // because of L24, input.value become "" before addMessage!
@@ -36,10 +37,10 @@ function showRoom() {
     welcome.hidden = true;
     room.hidden = false;
     const h3 = room.querySelector("h3");
-    h3.innerText = `Room ${roomName}`;
-    const msgForm = room.querySelector("#msg");
+    //h3.innerText = `Room ${roomName}`;
+    //const msgForm = room.querySelector("#msg");
     const nameForm = room.querySelector("#name");
-    msgForm.addEventListener("submit", handleMessageSubmit);
+    chatForm.addEventListener("submit", handleMessageSubmit);
     nameForm.addEventListener("submit", handleNameSubmit);
 }
 
@@ -99,7 +100,7 @@ let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
 let currentTime = 0;
-document.getElementById("player").style.display = "none";
+document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
 playlistChat.style.display = "none";
 
@@ -155,6 +156,7 @@ function listComments(videoId) {
     const commentsUl = commentDiv.querySelector("ul");
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
+    //newCommentsUl.className = "list-group"; // https://getbootstrap.com/docs/5.0/components/list-group/
     commentDiv.appendChild(newCommentsUl);
     fetch(apiUrl)
         .then(response => response.json())
@@ -164,6 +166,7 @@ function listComments(videoId) {
                 const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
                 const li = document.createElement("li");
                 li.innerText = `${author}: ${comment}`;
+                //li.className = "list-group-item";
                 newCommentsUl.appendChild(li);
             });
         })
@@ -212,7 +215,7 @@ socket.on("initState", (data) => {
         }
         console.log(data);
     });
-    document.getElementById("player").style.display = "";
+    document.getElementById("main").style.display = "";
     appPlayer.style.display = "";
     playlistChat.style.display = "";
     reportCurrentTime();
