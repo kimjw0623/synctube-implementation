@@ -10,15 +10,12 @@ const app = express();
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
-app.get("/", (_, res) => res.render("home", {
-    playlist: ["qwer","asdf"], // Make sure this is an array
-    chatMessages: ["qwer","asdf"] // Make sure this is an array
-  }));
+app.get("/", (_, res) => res.render("home"));
 // app.get("/*", (_, res) => res.redirect("/"));
 app.get("/test/", (_, res) => res.render("test", {
     playlist: ["qwer","asdf"], // Make sure this is an array
     chatMessages: ["qwer","asdf"] // Make sure this is an array
-  }));
+}));
 
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
 

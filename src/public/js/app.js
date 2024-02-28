@@ -41,7 +41,11 @@ function showRoom() {
     //const msgForm = room.querySelector("#msg");
     const nameForm = room.querySelector("#name");
     chatForm.addEventListener("submit", handleMessageSubmit);
-    nameForm.addEventListener("submit", handleNameSubmit);
+    //nameForm.addEventListener("submit", handleNameSubmit);
+    // playlist, chat
+    document.getElementById("playlistForm").hidden = false
+    document.getElementById("room").hidden = true
+    handleSwitchChatPlaylist();
 }
 
 function handleRoomSubmit(event) {
@@ -92,7 +96,7 @@ socket.on("room_change", (rooms) => {
 
 const appPlayer = document.getElementById("videoUrl");
 const playButton = appPlayer.querySelector("#playButton");
-const playlistForm = document.querySelector("#playlistForm");
+const addPlaylistButton = document.querySelector("#addButton");
 const commentDiv = document.getElementById("comment");
 const playlistChat = document.getElementById("playlistChat");
 
@@ -175,19 +179,36 @@ function listComments(videoId) {
         });
 }
 
-// function handlePlaylistSubmit(event) {
-//     event.preventDefault();
-//     const input = playlistForm.querySelector("input");
-//     socket.emit("addPlaylist", {
-//         videoId: input.value,
-//         room: roomName
-//     });
-//     console.log("add playlist! - submit")
-//     input.value = "";
-// }
+function handlePlaylistSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById("playNow");
+    socket.emit("addPlaylist", {
+        videoId: input.value,
+        room: roomName
+    });
+    console.log("add playlist! - submit")
+    input.value = "";
+}
+
+function handleSwitchChatPlaylist() {
+    const radios = document.querySelectorAll("label[name='radio']");
+	radios.forEach((radio) => {
+        radio.addEventListener("click", (e) => {
+            const current = e.currentTarget;
+            if (current.querySelector("input").id === "option1") {
+                document.getElementById("playlistForm").hidden = false
+                document.getElementById("room").hidden = true
+            }
+            else {
+                document.getElementById("playlistForm").hidden = true
+                document.getElementById("room").hidden = false
+            }
+		});
+	});
+};
 
 playButton.addEventListener("click", handleVideoUrlSubmit);
-// playlistForm.addEventListener("submit", handlePlaylistSubmit);
+addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 
 socket.on("videoUrlChange", videoId => {
     //console.log("get Urlchange!")
