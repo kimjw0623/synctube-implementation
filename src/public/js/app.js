@@ -43,9 +43,11 @@ function showRoom() {
     chatForm.addEventListener("submit", handleMessageSubmit);
     //nameForm.addEventListener("submit", handleNameSubmit);
     // playlist, chat
-    document.getElementById("playlistForm").hidden = false
-    document.getElementById("room").hidden = true
+    document.getElementById("playlistForm").hidden = false;
+    document.getElementById("room").hidden = true;
     handleSwitchChatPlaylist();
+    handleSortablePlaylist();
+    console.log("event setting!")
 }
 
 function handleRoomSubmit(event) {
@@ -62,12 +64,12 @@ form.addEventListener("submit", handleRoomSubmit);
 
 socket.on("welcome",(newCount, user) => {
     const h3 = room.querySelector("h3");
-    h3.innerText = `Room ${roomName}; Users ${newCount}`;
+    //h3.innerText = `Room ${roomName}; Users ${newCount}`;
     addMessage(`${user} joined!`);
 });
 socket.on("bye", (newCount, user) => {
     const h3 = room.querySelector("h3");
-    h3.innerText = `Room ${roomName}; Users ${newCount}`;
+    //h3.innerText = `Room ${roomName}; Users ${newCount}`;
     addMessage(`${user} Bye!`);
 });
 
@@ -207,6 +209,19 @@ function handleSwitchChatPlaylist() {
 	});
 };
 
+function handleSortablePlaylist() {
+    const sortableList = document.getElementById("sortable-list");
+    console.log("asdf")
+    sortableList.addEventListener("change", (e) => {
+        let idList = [];
+        sortableList.querySelectorAll("li").forEach((id) => {
+            idList.push(id.innerText)
+        })
+        socket.emit("changePlaylist", idList)
+        console.log(idList);
+	});
+};
+
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 
@@ -288,5 +303,6 @@ socket.on("updatePlaylist", (data) => {
         animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
         ghostClass: 'sortable-ghost' // Class name for the drop placeholder
     });
+    handleSortablePlaylist(); // important!!! eventlist has gone
     // get first child: playlistForm.querySelector("ol").firstChild.innerText
 });

@@ -117,15 +117,23 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         console.log(`time: ${currentTime}`)
     });
     socket.on("videoUrlChange", (data) => {
-        const videoId = getYoutubeVideoId(data.videoId)
-        currentServerState.videoId = videoId;
-        currentServerState.playerTime = 0;
-        // send to all members in room
-        wsServer.to(data.room).emit("videoUrlChange", videoId);
+        if (data.videoId != "") {
+            const videoId = getYoutubeVideoId(data.videoId)
+            currentServerState.videoId = videoId;
+            currentServerState.playerTime = 0;
+            // send to all members in room
+            wsServer.to(data.room).emit("videoUrlChange", videoId);
+        }
     });
     socket.on("addPlaylist", (data) => {
-        const playlistVideoId = getYoutubeVideoId(data.videoId);
-        currentServerState.playlist.push(playlistVideoId);
+        if (data.videoId != "") {
+            const playlistVideoId = getYoutubeVideoId(data.videoId);
+            currentServerState.playlist.push(playlistVideoId);
+            wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
+        }
+    })
+    socket.on("changePlaylist", (data) => {
+        currentServerState.playlist = data;
         wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
     })
 });
