@@ -217,7 +217,7 @@ function handleSortablePlaylist() {
         sortableList.querySelectorAll("li").forEach((id) => {
             idList.push(id.innerText)
         })
-        socket.emit("changePlaylist", idList)
+        socket.emit("changePlaylist", idList, roomName)
         console.log(idList);
 	});
 };

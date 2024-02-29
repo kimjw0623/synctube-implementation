@@ -132,9 +132,9 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })
-    socket.on("changePlaylist", (data) => {
+    socket.on("changePlaylist", (data, room) => {
         currentServerState.playlist = data;
-        wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
+        wsServer.to(room).emit("updatePlaylist", currentServerState.playlist)
     })
 });
 
