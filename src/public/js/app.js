@@ -203,7 +203,7 @@ function handleSwitchChatPlaylist() {
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     console.log("asdf")
-    sortableList.addEventListener("change", (e) => {
+    sortableList.addEventListener("drop", (e) => {
         let idList = [];
         sortableList.querySelectorAll("li").forEach((id) => {
             idList.push(id.innerText)
@@ -292,10 +292,11 @@ socket.on("updatePlaylist", (data) => {
         newPlaylistList.appendChild(li);
     });
     sortableList;
+    handleSortablePlaylist();
     var sortable = new Sortable(document.getElementById('sortable-list'), {
         animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
         ghostClass: 'sortable-ghost' // Class name for the drop placeholder
     });
-    handleSortablePlaylist(); // important!!! eventlist has gone
+     // important!!! eventlist has gone
     // get first child: playlistForm.querySelector("ol").firstChild.innerText
 });

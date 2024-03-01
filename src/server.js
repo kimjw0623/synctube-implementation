@@ -56,7 +56,7 @@ async function listComments(videoId) {
     const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
     const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
     let commentList
-
+    // TODO: move apikey to .env file
     try {
         const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
         const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
@@ -75,7 +75,7 @@ let currentServerState = {
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: ["M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk"],
+    playlist: ["M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
 }
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
@@ -119,6 +119,7 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket.on("stateChange", async (data) => {
         currentServerState.playerState = data.playerState;
         currentServerState.playerTime = data.currentTime;
+        // TODO: if playerTime === video length: go next video!
         if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
             console.log("video end!!!!!!!!!!!!!!!!")
             currentServerState.videoId = currentServerState.playlist.shift();
