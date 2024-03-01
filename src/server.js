@@ -5,6 +5,7 @@ import {Server} from "socket.io";
 //import {instrument} from "@socket.io/admin-ui";
 
 import express from "express";
+import fetch from "node-fetch";
 const app = express();
 
 app.set("view engine", "pug");
@@ -51,9 +52,28 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
+function listComments(videoId) {
+    const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
+    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
+    let commentList;
+
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            //console.log(data);
+            commentList = data.items;
+        })
+        .catch(error => {
+            console.error('Error fetching comments:', error);
+        });
+    console.log(commentList);
+    return commentList
+}
+
 // ["K49vI-88QlU","M7lc1UVf-VE","4fjqMq_nPAo"]
 let currentServerState = {
     videoId: "CRMOwaIkYSY",
+    videoComment: {},
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
@@ -92,6 +112,9 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     // init player
     socket.on("initState", (socketId) => {
         // emit to client with certain socketId
+
+        // update comment
+        currentServerState.commentList = listComments(currentServerState.videoId);
         wsServer.to(socketId).emit("initState", currentServerState);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });

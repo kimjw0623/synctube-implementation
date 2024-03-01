@@ -155,30 +155,33 @@ function handleVideoUrlSubmit(event){
     input.value = "";
 }
 
-function listComments(videoId) {
-    const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
-    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
+function listComments(data) {
+    // const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
+    // const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
     
     const commentsUl = commentDiv.querySelector("ul");
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
     //newCommentsUl.className = "list-group"; // https://getbootstrap.com/docs/5.0/components/list-group/
     commentDiv.appendChild(newCommentsUl);
-    fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-            data.items.forEach(commentItem => {
-                const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
-                const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
-                const li = document.createElement("li");
-                li.innerText = `${author}: ${comment}`;
-                //li.className = "list-group-item";
-                newCommentsUl.appendChild(li);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching comments:', error);
-        });
+    console.log(data.videoComment);
+    data.videoComment.items.forEach(commentItem => {
+        const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
+        const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
+        const li = document.createElement("li");
+        li.innerText = `${author}: ${comment}`;
+        //li.className = "list-group-item";
+        newCommentsUl.appendChild(li);
+    });
+
+    // fetch(apiUrl)
+    //     .then(response => response.json())
+    //     .then(data => {
+            
+    //     })
+    //     .catch(error => {
+    //         console.error('Error fetching comments:', error);
+    //     });
 }
 
 function handlePlaylistSubmit(event) {
@@ -240,7 +243,7 @@ socket.on("videoUrlChange", videoId => {
 socket.on("initState", (data) => {
     // initialize player state with server data
     blockStateChange(function () {
-        listComments(data.videoId);
+        listComments(data);
         player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.playerTime);
         // player.seekTo(, true);
         console.log(data.playerTime);
