@@ -156,9 +156,6 @@ function handleVideoUrlSubmit(event){
 }
 
 function listComments(data) {
-    // const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
-    // const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
-    
     const commentsUl = commentDiv.querySelector("ul");
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
@@ -173,15 +170,6 @@ function listComments(data) {
         //li.className = "list-group-item";
         newCommentsUl.appendChild(li);
     });
-
-    // fetch(apiUrl)
-    //     .then(response => response.json())
-    //     .then(data => {
-            
-    //     })
-    //     .catch(error => {
-    //         console.error('Error fetching comments:', error);
-    //     });
 }
 
 function handlePlaylistSubmit(event) {
@@ -228,12 +216,12 @@ function handleSortablePlaylist() {
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 
-socket.on("videoUrlChange", videoId => {
+socket.on("videoUrlChange", data => {
     //console.log("get Urlchange!")
     blockStateChange(function () {
         currentTime = 0;
-        listComments(videoId);
-        player.loadVideoById(mediaContentUrl = String(videoId));
+        listComments(data);
+        player.loadVideoById(mediaContentUrl = String(data.videoId));
         player.seekTo(0, true);
         //console.log("changed!");
         player.playVideo();
@@ -243,6 +231,7 @@ socket.on("videoUrlChange", videoId => {
 socket.on("initState", (data) => {
     // initialize player state with server data
     blockStateChange(function () {
+        console.log(data);
         listComments(data);
         player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.playerTime);
         // player.seekTo(, true);
@@ -302,6 +291,7 @@ socket.on("updatePlaylist", (data) => {
         li.className = "list-group-item";
         newPlaylistList.appendChild(li);
     });
+    sortableList;
     var sortable = new Sortable(document.getElementById('sortable-list'), {
         animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
         ghostClass: 'sortable-ghost' // Class name for the drop placeholder

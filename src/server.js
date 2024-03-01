@@ -52,21 +52,19 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-function listComments(videoId) {
+async function listComments(videoId) {
     const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
     const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
-    let commentList;
+    let commentList
 
-    fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-            //console.log(data);
-            commentList = data.items;
-        })
-        .catch(error => {
-            console.error('Error fetching comments:', error);
-        });
-    console.log(commentList);
+    try {
+        const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
+        const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
+        commentList = Object.assign({}, data);
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+    }
+
     return commentList
 }
 
@@ -110,21 +108,22 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     // -----------------------------------------
 
     // init player
-    socket.on("initState", (socketId) => {
+    socket.on("initState", async (socketId) => {
         // emit to client with certain socketId
 
         // update comment
-        currentServerState.commentList = listComments(currentServerState.videoId);
+        currentServerState.videoComment = await listComments(currentServerState.videoId);
         wsServer.to(socketId).emit("initState", currentServerState);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });
-    socket.on("stateChange", (data) => {
+    socket.on("stateChange", async (data) => {
         currentServerState.playerState = data.playerState;
         currentServerState.playerTime = data.currentTime;
         if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
-            console.log("end!!!!!!!!!!!!!!!!")
+            console.log("video end!!!!!!!!!!!!!!!!")
             currentServerState.videoId = currentServerState.playlist.shift();
-            wsServer.to(data.room).emit("videoUrlChange", currentServerState.videoId);
+            currentServerState.videoComment = await listComments(currentServerState.videoId);
+            wsServer.to(data.room).emit("videoUrlChange", currentServerState);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
         }
         else {wsServer.to(data.room).emit("stateChange", data);}
@@ -139,13 +138,14 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         wsServer.to(room).emit("SyncTime", data);
         console.log(`time: ${currentTime}`)
     });
-    socket.on("videoUrlChange", (data) => {
+    socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
             const videoId = getYoutubeVideoId(data.videoId)
             currentServerState.videoId = videoId;
+            currentServerState.videoComment = await listComments(currentServerState.videoId);
             currentServerState.playerTime = 0;
             // send to all members in room
-            wsServer.to(data.room).emit("videoUrlChange", videoId);
+            wsServer.to(data.room).emit("videoUrlChange", currentServerState);
         }
     });
     socket.on("addPlaylist", (data) => {
