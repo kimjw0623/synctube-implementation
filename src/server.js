@@ -1,18 +1,17 @@
 import path from "path";
-// const __dirname = path.resolve();
 import http from "http";
 import {Server} from "socket.io";
-//import {instrument} from "@socket.io/admin-ui";
-
 import express from "express";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
 const app = express();
+
+dotenv.config();
 
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
 app.get("/", (_, res) => res.render("home"));
-// app.get("/*", (_, res) => res.redirect("/"));
 app.get("/test/", (_, res) => res.render("test", {
     playlist: ["qwer","asdf"], // Make sure this is an array
     chatMessages: ["qwer","asdf"] // Make sure this is an array
@@ -27,9 +26,7 @@ const wsServer = new Server(httpServer, {
         credentials: true,
     },
 });
-// instrument(wsServer, {
-//     auth: false
-// });
+
 
 function publicRooms(){
     const sids = wsServer.sockets.adapter.sids;
@@ -53,10 +50,9 @@ function getYoutubeVideoId(url) {
 }
 
 async function listComments(videoId) {
-    const apiKey = 'AIzaSyCi0jYdSQvkTOP47SA0PiLJR9_kdSr9jVA';
+    const apiKey = process.env.YOUTUBE_DATA_API_KEY;
     const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
     let commentList
-    // TODO: move apikey to .env file
     try {
         const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
         const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
@@ -68,14 +64,13 @@ async function listComments(videoId) {
     return commentList
 }
 
-// ["K49vI-88QlU","M7lc1UVf-VE","4fjqMq_nPAo"]
 let currentServerState = {
     videoId: "CRMOwaIkYSY",
     videoComment: {},
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: ["M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
+    playlist: ["1EJcaxYMZzQ","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
 }
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
@@ -109,9 +104,6 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
 
     // init player
     socket.on("initState", async (socketId) => {
-        // emit to client with certain socketId
-
-        // update comment
         currentServerState.videoComment = await listComments(currentServerState.videoId);
         wsServer.to(socketId).emit("initState", currentServerState);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
