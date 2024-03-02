@@ -4,9 +4,26 @@ import {Server} from "socket.io";
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 const app = express();
 
 dotenv.config();
+
+mongoose.connect('mongodb://localhost:27017/videos', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connect.'))
+.catch(err => console.error('MongoDB failed.', err));
+
+const Schema = mongoose.Schema;
+
+const userSchema = new Schema({
+    videoId: { type: String, required: true, unique: true },
+    comment: { type: String, required: true },
+    metadata: { type: String, required: true },
+});
+const videoDB = mongoose.model('Video', userSchema);
 
 app.set("view engine", "pug");
 app.set("views", "./src/views");
@@ -64,17 +81,68 @@ async function listComments(videoId) {
     return commentList
 }
 
-let currentServerState = {
-    videoId: "CRMOwaIkYSY",
-    videoComment: {},
+
+async function getVideoMetadata(videoId) {
+    const apiKey = process.env.YOUTUBE_DATA_API_KEY;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}`;
+    let videoMetadata;
+    try {
+        const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
+        const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
+        videoMetadata = Object.assign({}, data);
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+    }
+
+    return videoMetadata
+}
+
+async function insertVideoDB(videoId) {
+    const comment = await (listComments(videoId));
+    const metadata = await getVideoMetadata(videoId);
+    // check whether videoId exists
+    const res = await videoDB.find({ videoId: videoId }).exec();
+    console.log(res);
+    console.log(res.length);
+    if (res.length === 0) {
+        await videoDB.create({
+            videoId: videoId,
+            comment: JSON.stringify(comment),
+            metadata: JSON.stringify(metadata),
+        });
+    }
+}
+
+async function readVideoDB(videoId) {
+    const videoInfo = await videoDB.find({ videoId: videoId }).exec();
+    console.log(videoInfo.length);
+    const comment = await JSON.parse(videoInfo[0].comment);
+    const metadata = await JSON.parse(videoInfo[0].metadata);
+
+    return {comment: comment, metadata: metadata}
+}
+
+const currentServerState = {
+    videoId: "1EJcaxYMZzQ",
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: ["1EJcaxYMZzQ","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
+    playlist: ["CRMOwaIkYSY","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
 }
+
 
 wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket["nickname"] = "Anon";
+    // In production, these insert code should remove
+    if (currentServerState.playlist.length != 0) {
+        currentServerState.playlist.forEach(videoId => {
+            insertVideoDB(videoId)
+        });
+    }
+    if (currentServerState.videoId != "") {
+        insertVideoDB(currentServerState.videoId);
+    }
+
     // TODO: 아이디 리스트 보여주도록 구현
     wsServer.sockets.emit("room_change", publicRooms()); // 처음 입장했을 떄 방 상태 보여줄 수 있음!
     socket.onAny((event) => {
@@ -104,8 +172,8 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
 
     // init player
     socket.on("initState", async (socketId) => {
-        currentServerState.videoComment = await listComments(currentServerState.videoId);
-        wsServer.to(socketId).emit("initState", currentServerState);
+        const videoInfo = await readVideoDB(currentServerState.videoId);
+        wsServer.to(socketId).emit("initState", currentServerState, videoInfo.comment);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });
     socket.on("stateChange", async (data) => {
@@ -115,8 +183,8 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
             console.log("video end!!!!!!!!!!!!!!!!")
             currentServerState.videoId = currentServerState.playlist.shift();
-            currentServerState.videoComment = await listComments(currentServerState.videoId);
-            wsServer.to(data.room).emit("videoUrlChange", currentServerState);
+            const videoInfo = await readVideoDB(currentServerState.videoId);
+            wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
         }
         else {wsServer.to(data.room).emit("stateChange", data);}
@@ -134,17 +202,21 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
             const videoId = getYoutubeVideoId(data.videoId)
+            // get video data from DB!
             currentServerState.videoId = videoId;
-            currentServerState.videoComment = await listComments(currentServerState.videoId);
+            await insertVideoDB(videoId);
+            console.log(videoId);
+            const videoInfo = await readVideoDB(currentServerState.videoId);
             currentServerState.playerTime = 0;
             // send to all members in room
-            wsServer.to(data.room).emit("videoUrlChange", currentServerState);
+            wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
         }
     });
-    socket.on("addPlaylist", (data) => {
+    socket.on("addPlaylist", async (data) => {
         if (data.videoId != "") {
             const playlistVideoId = getYoutubeVideoId(data.videoId);
             currentServerState.playlist.push(playlistVideoId);
+            await insertVideoDB(playlistVideoId);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })

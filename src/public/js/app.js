@@ -155,14 +155,14 @@ function handleVideoUrlSubmit(event){
     input.value = "";
 }
 
-function listComments(data) {
+function listComments(videoComment) {
     const commentsUl = commentDiv.querySelector("ul");
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
     //newCommentsUl.className = "list-group"; // https://getbootstrap.com/docs/5.0/components/list-group/
     commentDiv.appendChild(newCommentsUl);
-    console.log(data.videoComment);
-    data.videoComment.items.forEach(commentItem => {
+    console.log(videoComment);
+    videoComment.items.forEach(commentItem => {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
@@ -216,23 +216,22 @@ function handleSortablePlaylist() {
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 
-socket.on("videoUrlChange", data => {
+socket.on("videoUrlChange", (data, videoComment) => {
     //console.log("get Urlchange!")
     blockStateChange(function () {
         currentTime = 0;
-        listComments(data);
+        listComments(videoComment);
         player.loadVideoById(mediaContentUrl = String(data.videoId));
         player.seekTo(0, true);
-        //console.log("changed!");
         player.playVideo();
     });
 });
 
-socket.on("initState", (data) => {
+socket.on("initState", (data, videoComment) => {
     // initialize player state with server data
     blockStateChange(function () {
         console.log(data);
-        listComments(data);
+        listComments(videoComment);
         player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.playerTime);
         // player.seekTo(, true);
         console.log(data.playerTime);
@@ -241,7 +240,6 @@ socket.on("initState", (data) => {
         } else if (data.playerState === YT.PlayerState.PAUSED) {
             player.pauseVideo();
         }
-        console.log(data);
     });
     document.getElementById("main").style.display = "";
     appPlayer.style.display = "";
