@@ -14,3 +14,4 @@ $ mongosh
 ```
 npm run dev
 ```
+Then, type `localhost:3000` in your browser!
