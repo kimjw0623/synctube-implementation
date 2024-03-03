@@ -102,7 +102,6 @@ async function insertVideoDB(videoId) {
     const metadata = await getVideoMetadata(videoId);
     // check whether videoId exists
     const res = await videoDB.find({ videoId: videoId }).exec();
-    console.log(res.length);
     if (res.length === 0) {
         await videoDB.create({
             videoId: videoId,
@@ -146,20 +145,18 @@ function isVideoEnd() {
 }
 
 async function initializeDev() {
-    const initVideo = "1EJcaxYMZzQ"
-    const initPlaylist = ["CRMOwaIkYSY"]
+    const initVideo = "1EJcaxYMZzQ";
+    const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
 
     await insertVideoDB(initVideo);
     let videoInfo = await readVideoDB(initVideo);
     currentServerState.currentVideo = processResponse(videoInfo.metadata);
     
-
     if (initPlaylist.length != 0) {
         initPlaylist.forEach(async videoId => {
             await insertVideoDB(videoId);
             videoInfo = await readVideoDB(videoId);
             currentServerState.playlist.push(processResponse(videoInfo.metadata));
-            console.log(currentServerState.playlist);
         });
     }
     
@@ -170,7 +167,7 @@ const currentServerState = {
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: []//["CRMOwaIkYSY","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
+    playlist: []
 }
 
 wsServer.on("connection", (socket) => { // socket connection
@@ -253,16 +250,16 @@ wsServer.on("connection", (socket) => { // socket connection
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })
-    socket.on("changePlaylist", (data, room) => {
-        if (data.length != 0) {
-            console.log(data);
-            data.forEach(async videoId => {
-                let videoInfo = await readVideoDB(videoId);
-                console.log(videoInfo.metadata);
+    socket.on("changePlaylist", async (data, room) => {
+        if (data.length !== 0) {
+            currentServerState.playlist = [];
+            const promises = data.map(videoId => readVideoDB(videoId));
+            const videosInfo = await Promise.all(promises);
+            videosInfo.forEach(videoInfo => {
                 currentServerState.playlist.push(processResponse(videoInfo.metadata));
             });
+            wsServer.to(room).emit("updatePlaylist", currentServerState.playlist);
         }
-        wsServer.to(room).emit("updatePlaylist", currentServerState.playlist)
     })
 });
 

@@ -199,10 +199,10 @@ function handleSortablePlaylist() {
     sortableList.addEventListener("drop", (e) => {
         let idList = [];
         sortableList.querySelectorAll("li").forEach((id) => {
-            idList.push(id.querySelector("span").innerText);
+            idList.push(id.querySelector("img").alt);
         })
         socket.emit("changePlaylist", idList, roomName);
-        console.log(idList);
+        console.log(`handlesortable: ${idList}`);
 	});
 };
 
@@ -282,7 +282,7 @@ socket.on("updatePlaylist", (data) => {
         
         const img = document.createElement("img");
         img.src = videoItem.thumbnailUrl;
-        img.alt = videoItem.title;
+        img.alt = videoItem.id;
         img.style.cssText = 'width:100px; height:auto; float:left;';
     
         const titleSpan = document.createElement("span");
