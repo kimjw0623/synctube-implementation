@@ -73,10 +73,6 @@ socket.on("bye", (newCount, user) => {
     addMessage(`${user} Bye!`);
 });
 
-// Same code:
-// socket.on("new_message", (msg) => {
-//     addMessage(msg)
-// })
 socket.on("new_message", (a, newCount) => {
     console.log(a);
     addMessage(a)});
@@ -159,15 +155,13 @@ function listComments(videoComment) {
     const commentsUl = commentDiv.querySelector("ul");
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
-    //newCommentsUl.className = "list-group"; // https://getbootstrap.com/docs/5.0/components/list-group/
     commentDiv.appendChild(newCommentsUl);
-    console.log(videoComment);
+    console.log(`comment: ${videoComment}`);
     videoComment.items.forEach(commentItem => {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
         li.innerText = `${author}: ${comment}`;
-        //li.className = "list-group-item";
         newCommentsUl.appendChild(li);
     });
 }
@@ -202,13 +196,12 @@ function handleSwitchChatPlaylist() {
 
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
-    console.log("asdf")
     sortableList.addEventListener("drop", (e) => {
         let idList = [];
         sortableList.querySelectorAll("li").forEach((id) => {
-            idList.push(id.innerText)
+            idList.push(id.querySelector("span").innerText);
         })
-        socket.emit("changePlaylist", idList, roomName)
+        socket.emit("changePlaylist", idList, roomName);
         console.log(idList);
 	});
 };
@@ -221,7 +214,7 @@ socket.on("videoUrlChange", (data, videoComment) => {
     blockStateChange(function () {
         currentTime = 0;
         listComments(videoComment);
-        player.loadVideoById(mediaContentUrl = String(data.videoId));
+        player.loadVideoById(mediaContentUrl = String(data.currentVideo.id));
         player.seekTo(0, true);
         player.playVideo();
     });
@@ -230,10 +223,10 @@ socket.on("videoUrlChange", (data, videoComment) => {
 socket.on("initState", (data, videoComment) => {
     // initialize player state with server data
     blockStateChange(function () {
-        console.log(data);
         listComments(videoComment);
-        player.loadVideoById(mediaContentUrl = data.videoId, startSeconds = data.playerTime);
-        // player.seekTo(, true);
+        setTimeout(function () {
+            player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
+        }, 500);
         console.log(data.playerTime);
         if (data.playerState === YT.PlayerState.PLAYING) {
             player.playVideo();
@@ -285,16 +278,36 @@ socket.on("updatePlaylist", (data) => {
     playlistForm.insertBefore(newPlaylistList,sortableList);
     data.forEach(videoItem => {
         const li = document.createElement("li");
-        li.innerText = `${videoItem}`;
         li.className = "list-group-item";
+        
+        const img = document.createElement("img");
+        img.src = videoItem.thumbnailUrl;
+        img.alt = videoItem.title;
+        img.style.cssText = 'width:100px; height:auto; float:left;';
+    
+        const titleSpan = document.createElement("span");
+        titleSpan.innerText = videoItem.title;
+        titleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:110px;';
+    
+        const channelSpan = document.createElement("span");
+        channelSpan.innerText = videoItem.channelTitle;
+        channelSpan.style.cssText = 'display:block; margin-left:110px;';
+    
+        // const durationSpan = document.createElement("span");
+        // durationSpan.innerText = videoItem.duration;
+        // durationSpan.style.cssText = 'display:block; margin-left:110px;';
+    
+        li.appendChild(img);
+        li.appendChild(titleSpan);
+        //li.appendChild(durationSpan);
+        li.appendChild(channelSpan);
+        
         newPlaylistList.appendChild(li);
     });
-    sortableList;
     handleSortablePlaylist();
+    // important!!! eventlist has gone
     var sortable = new Sortable(document.getElementById('sortable-list'), {
         animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
         ghostClass: 'sortable-ghost' // Class name for the drop placeholder
     });
-     // important!!! eventlist has gone
-    // get first child: playlistForm.querySelector("ol").firstChild.innerText
 });

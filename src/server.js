@@ -84,7 +84,7 @@ async function listComments(videoId) {
 
 async function getVideoMetadata(videoId) {
     const apiKey = process.env.YOUTUBE_DATA_API_KEY;
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=contentDetails,snippet`;
     let videoMetadata;
     try {
         const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
@@ -102,7 +102,6 @@ async function insertVideoDB(videoId) {
     const metadata = await getVideoMetadata(videoId);
     // check whether videoId exists
     const res = await videoDB.find({ videoId: videoId }).exec();
-    //console.log(res);
     console.log(res.length);
     if (res.length === 0) {
         await videoDB.create({
@@ -115,43 +114,71 @@ async function insertVideoDB(videoId) {
 
 async function readVideoDB(videoId) {
     const videoInfo = await videoDB.find({ videoId: videoId }).exec();
-    console.log(videoInfo.length);
     if (videoInfo.length != 0){
-        const comment = videoInfo[0].comment; //JSON.parse(videoInfo[0].comment);
-        const metadata = videoInfo[0].metadata; //JSON.parse();
+        const comment = videoInfo[0].comment;
+        const metadata = videoInfo[0].metadata;
         return {comment: comment, metadata: metadata}
     }
     else {
-        return undefined
+        return {comment: undefined, metadata: undefined}
     }
+}
+
+function processResponse(response) {
+    const id = response.items[0].id;
+    const title = response.items[0].snippet.title;
+    const thumbnailUrl = response.items[0].snippet.thumbnails.default.url;
+    const channelTitle = response.items[0].snippet.channelTitle;
+    const duration = response.items[0].contentDetails.duration;
+    const result = {
+        id: id,
+        title: title,
+        thumbnailUrl: thumbnailUrl,
+        channelTitle: channelTitle,
+        duration: duration
+    }
+    
+    return result
+}
+
+function isVideoEnd() {
+
+}
+
+async function initializeDev() {
+    const initVideo = "1EJcaxYMZzQ"
+    const initPlaylist = ["CRMOwaIkYSY"]
+
+    await insertVideoDB(initVideo);
+    let videoInfo = await readVideoDB(initVideo);
+    currentServerState.currentVideo = processResponse(videoInfo.metadata);
+    
+
+    if (initPlaylist.length != 0) {
+        initPlaylist.forEach(async videoId => {
+            await insertVideoDB(videoId);
+            videoInfo = await readVideoDB(videoId);
+            currentServerState.playlist.push(processResponse(videoInfo.metadata));
+            console.log(currentServerState.playlist);
+        });
+    }
+    
 }
 
 const currentServerState = {
-    videoId: "1EJcaxYMZzQ",
+    currentVideo: {},
     playerState: -1,
     playerTime: 0,
     playerVolume: 20,
-    playlist: ["CRMOwaIkYSY","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
+    playlist: []//["CRMOwaIkYSY","M7lc1UVf-VE", "4fjqMq_nPAo", "dHwhfpN--Bk","K49vI-88QlU"],
 }
 
-
-wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
+wsServer.on("connection", (socket) => { // socket connection
     socket["nickname"] = "Anon";
-    // In production, these insert code should remove
-    if (currentServerState.playlist.length != 0) {
-        currentServerState.playlist.forEach(videoId => {
-            insertVideoDB(videoId)
-        });
-    }
-    if (currentServerState.videoId != "") {
-        insertVideoDB(currentServerState.videoId);
-    }
-
-    // TODO: 아이디 리스트 보여주도록 구현
-    wsServer.sockets.emit("room_change", publicRooms()); // 처음 입장했을 떄 방 상태 보여줄 수 있음!
+    // TODO: implement id list
+    wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
-        // console.log(currentServerState);
     });
     socket.on("enter_room", (roomName, done) => {
         socket.join(roomName);
@@ -176,7 +203,8 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
 
     // init player
     socket.on("initState", async (socketId) => {
-        const videoInfo = await readVideoDB(currentServerState.videoId);
+        const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
+        console.log(currentServerState.playlist);
         wsServer.to(socketId).emit("initState", currentServerState, videoInfo.comment);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });
@@ -186,8 +214,8 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         // TODO: if playerTime === video length: go next video!
         if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
             console.log("video end!!!!!!!!!!!!!!!!")
-            currentServerState.videoId = currentServerState.playlist.shift();
-            const videoInfo = await readVideoDB(currentServerState.videoId);
+            currentServerState.currentVideo = currentServerState.playlist.shift();
+            const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
             wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
         }
@@ -207,10 +235,9 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
         if (data.videoId != "") {
             const videoId = getYoutubeVideoId(data.videoId)
             // get video data from DB!
-            currentServerState.videoId = videoId;
             await insertVideoDB(videoId);
-            console.log(videoId);
-            const videoInfo = await readVideoDB(currentServerState.videoId);
+            const videoInfo = await readVideoDB(videoId);
+            currentServerState.currentVideo = processResponse(videoInfo.metadata);
             currentServerState.playerTime = 0;
             // send to all members in room
             wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
@@ -219,15 +246,25 @@ wsServer.on("connection", (socket) => { // socket 연결이 성립했을 때:
     socket.on("addPlaylist", async (data) => {
         if (data.videoId != "") {
             const playlistVideoId = getYoutubeVideoId(data.videoId);
-            currentServerState.playlist.push(playlistVideoId);
             await insertVideoDB(playlistVideoId);
+            const videoInfo = await readVideoDB(playlistVideoId);
+            const metadata = processResponse(videoInfo.metadata);
+            currentServerState.playlist.push(metadata);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })
     socket.on("changePlaylist", (data, room) => {
-        currentServerState.playlist = data;
+        if (data.length != 0) {
+            console.log(data);
+            data.forEach(async videoId => {
+                let videoInfo = await readVideoDB(videoId);
+                console.log(videoInfo.metadata);
+                currentServerState.playlist.push(processResponse(videoInfo.metadata));
+            });
+        }
         wsServer.to(room).emit("updatePlaylist", currentServerState.playlist)
     })
 });
 
+await initializeDev(); // should remove in production
 httpServer.listen(3000, handleListen);
