@@ -20,8 +20,8 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
     videoId: { type: String, required: true, unique: true },
-    comment: { type: String, required: true },
-    metadata: { type: String, required: true },
+    comment: { type: "Mixed", default: {} },
+    metadata: { type: "Mixed", default: {} },
 });
 const videoDB = mongoose.model('Video', userSchema);
 
@@ -98,17 +98,17 @@ async function getVideoMetadata(videoId) {
 }
 
 async function insertVideoDB(videoId) {
-    const comment = await (listComments(videoId));
+    const comment = await listComments(videoId);
     const metadata = await getVideoMetadata(videoId);
     // check whether videoId exists
     const res = await videoDB.find({ videoId: videoId }).exec();
-    console.log(res);
+    //console.log(res);
     console.log(res.length);
     if (res.length === 0) {
         await videoDB.create({
             videoId: videoId,
-            comment: JSON.stringify(comment),
-            metadata: JSON.stringify(metadata),
+            comment: comment,
+            metadata: metadata,
         });
     }
 }
@@ -116,10 +116,14 @@ async function insertVideoDB(videoId) {
 async function readVideoDB(videoId) {
     const videoInfo = await videoDB.find({ videoId: videoId }).exec();
     console.log(videoInfo.length);
-    const comment = await JSON.parse(videoInfo[0].comment);
-    const metadata = await JSON.parse(videoInfo[0].metadata);
-
-    return {comment: comment, metadata: metadata}
+    if (videoInfo.length != 0){
+        const comment = videoInfo[0].comment; //JSON.parse(videoInfo[0].comment);
+        const metadata = videoInfo[0].metadata; //JSON.parse();
+        return {comment: comment, metadata: metadata}
+    }
+    else {
+        return undefined
+    }
 }
 
 const currentServerState = {
