@@ -201,10 +201,20 @@ function handleSortablePlaylist() {
         sortableList.querySelectorAll("li").forEach((id) => {
             idList.push(id.querySelector("img").alt);
         })
+        console.log(`Current playlist: ${idList}`);
         socket.emit("changePlaylist", idList, roomName);
-        console.log(`handlesortable: ${idList}`);
 	});
 };
+
+function handleDeletePlaylist() {
+    let idList = [];
+    const sortableList = document.getElementById("sortable-list");
+    sortableList.querySelectorAll("li").forEach((id) => {
+        idList.push(id.querySelector("img").alt);
+    })
+    console.log(idList);
+    socket.emit("changePlaylist", idList, roomName);
+}
 
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
@@ -244,7 +254,6 @@ socket.on("initState", (data, videoComment) => {
 socket.on("stateChange", data => {
     const serverTime = data.currentTime;
     const serverStatus = data.playerState;
-    // console.log(`get ${serverTime}, ${serverStatus}`);
     blockStateChange(function () {
         if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
             player.seekTo(serverTime, true);
@@ -293,6 +302,14 @@ socket.on("updatePlaylist", (data) => {
         channelSpan.innerText = videoItem.channelTitle;
         channelSpan.style.cssText = 'display:block; margin-left:110px;';
     
+        const deleteButton = document.createElement("button");
+        deleteButton.innerText = 'Delete';
+        deleteButton.style.cssText = 'float:right;';
+        deleteButton.onclick = function() {
+            li.remove();
+            handleDeletePlaylist();
+        };
+
         // const durationSpan = document.createElement("span");
         // durationSpan.innerText = videoItem.duration;
         // durationSpan.style.cssText = 'display:block; margin-left:110px;';
@@ -301,6 +318,7 @@ socket.on("updatePlaylist", (data) => {
         li.appendChild(titleSpan);
         //li.appendChild(durationSpan);
         li.appendChild(channelSpan);
+        li.appendChild(deleteButton);
         
         newPlaylistList.appendChild(li);
     });
