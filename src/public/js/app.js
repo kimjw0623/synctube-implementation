@@ -147,7 +147,7 @@ function handleVideoUrlSubmit(event){
         videoId: input.value,
         room: roomName
     });
-    console.log("video changed! - submit")
+    console.log("video changed! - submit");
     input.value = "";
 }
 
@@ -173,7 +173,7 @@ function handlePlaylistSubmit(event) {
         videoId: input.value,
         room: roomName
     });
-    console.log("add playlist! - submit")
+    console.log("add playlist! - submit");
     input.value = "";
 }
 
@@ -183,12 +183,12 @@ function handleSwitchChatPlaylist() {
         radio.addEventListener("click", (e) => {
             const current = e.currentTarget;
             if (current.querySelector("input").id === "option1") {
-                document.getElementById("playlistForm").hidden = false
-                document.getElementById("room").hidden = true
+                document.getElementById("playlistForm").hidden = false;
+                document.getElementById("room").hidden = true;
             }
             else {
-                document.getElementById("playlistForm").hidden = true
-                document.getElementById("room").hidden = false
+                document.getElementById("playlistForm").hidden = true;
+                document.getElementById("room").hidden = false;
             }
 		});
 	});
@@ -282,8 +282,8 @@ socket.on("updatePlaylist", (data) => {
     const sortableList = document.getElementById("sortableList");
     playlistList.remove();
     const newPlaylistList = document.createElement("ol");
-    newPlaylistList.className = "list-group"
-    newPlaylistList.id = "sortable-list"
+    newPlaylistList.className = "list-group";
+    newPlaylistList.id = "sortable-list";
     playlistForm.insertBefore(newPlaylistList,sortableList);
     data.forEach(videoItem => {
         const li = document.createElement("li");

@@ -140,8 +140,25 @@ function processResponse(response) {
     return result
 }
 
-function isVideoEnd() {
+function parseISODuration(duration) {
+    const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+    const matches = duration.match(regex);
 
+    const hours = parseInt(matches[4]) || 0;
+    const minutes = parseInt(matches[5]) || 0;
+    const seconds = parseInt(matches[6]) || 0;
+
+    return (hours * 60 + minutes) * 60 + seconds;
+}
+
+function isVideoEnd(duration, currentTime) {
+    const durationSeconds = parseISODuration(duration);
+    if (Math.abs(durationSeconds - currentTime < 2)) {
+        return true
+    }
+    else {
+        return false
+    }
 }
 
 async function initializeDev() {
@@ -209,7 +226,8 @@ wsServer.on("connection", (socket) => { // socket connection
         currentServerState.playerState = data.playerState;
         currentServerState.playerTime = data.currentTime;
         // TODO: if playerTime === video length: go next video!
-        if (data.playerState === 0 && currentServerState.playlist.length != 0) { // video ends
+        if (isVideoEnd(currentServerState.currentVideo.duration,currentServerState.playerTime) ||
+            (data.playerState === 0 && currentServerState.playlist.length != 0)) { // video ends
             console.log("video end!!!!!!!!!!!!!!!!")
             currentServerState.currentVideo = currentServerState.playlist.shift();
             const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
