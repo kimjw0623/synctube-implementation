@@ -7,7 +7,7 @@
 body, html {
     height: 100%;
     /* font-family: 'Arial', sans-serif; */
-    background-color: #39323f; /* Light blue background */
+    background-color: #222831; /* Light blue background */
     color: #fff; /* Darker text for better contrast */
 }
 
@@ -48,12 +48,12 @@ body, html {
     display: flex;
     align-items: center;
     padding: 10px;
-    background-color: #39323f; /* Lighter blue for header */
+    background-color: #000000; /* Lighter blue for header */
 }
 
 .flex-grow-1 {
     padding: 10px;
-    background-color: #1a1a1a; /* Lighter blue for header */
+    background-color: #393E46; /* Lighter blue for header */
 }
 
 #chatForm .btn {
@@ -79,8 +79,28 @@ body, html {
 }
 
 .list-group-item {
-    background-color: #39323f; /* Light blue for footer */
+    background-color: #222831; /* Light blue for footer */
     color: #ffffff;
+}
+
+input[placeholder="Room name"] {
+    margin: 5px 0; /* 상하 마진 추가 */
+    padding: 5px; /* 패딩 증가 */
+    font-size: 15px; /* 글꼴 크기 증가 */
+    width: 80%; /* 폼 내부 요소 너비 */
+}
+
+.start-container {
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px; 
+}
+
+.open-rooms h4 {
+    margin: 20px 0 10px;
 }
 
 .chat-container {
@@ -88,12 +108,12 @@ body, html {
     flex-direction: column;
     height: 400px;
     width: 450px;
-    background-color: #39323f; /* White background for chat container */
+    background-color: #222831; /* White background for chat container */
 }
 
-.comment-container {
-    background-color: #1a1a1a; /* White background for chat container */
-}
+/* .comment-container {
+    background-color: #1a1a1a;
+} */
 
 .sortable-ghost {
     background-color: #cfd3d6;

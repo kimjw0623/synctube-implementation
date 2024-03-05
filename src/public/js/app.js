@@ -85,8 +85,11 @@ socket.on("room_change", (rooms) => {
     roomList.innerHTML = ""; // 비워주기
     rooms.forEach(room => {
         li = document.createElement("li");
-        li.innerText = room;
-        roomList.appendChild(li);
+        const roomListSpan = document.createElement("span");
+        roomListSpan.innerText = room;
+        roomListSpan.style.cssText = 'font-weight:bold; display:block;';
+        roomList.appendChild(roomListSpan);
+        //roomList.appendChild(li);
     })
 });
 

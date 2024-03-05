@@ -5,6 +5,7 @@ import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import { generateFromEmail, generateUsername } from "unique-username-generator";
 const app = express();
 
 dotenv.config();
@@ -211,9 +212,10 @@ const currentServerState = {
     playlist: []
 }
 
+const roomList = [];
+
 wsServer.on("connection", (socket) => { // socket connection
-    socket["nickname"] = "Anon";
-    // TODO: implement id list
+    socket["nickname"] = generateUsername("", 0, 15);
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
@@ -249,10 +251,8 @@ wsServer.on("connection", (socket) => { // socket connection
     socket.on("stateChange", async (data) => {
         currentServerState.playerState = data.playerState;
         currentServerState.playerTime = data.currentTime;
-        // TODO: if playerTime === video length: go next video!
         if (isVideoEnd(currentServerState.currentVideo.duration,currentServerState.playerTime) ||
             (data.playerState === 0 && currentServerState.playlist.length != 0)) { // video ends
-            console.log("video end!!!!!!!!!!!!!!!!")
             currentServerState.currentVideo = currentServerState.playlist.shift();
             const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
             wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
@@ -273,7 +273,6 @@ wsServer.on("connection", (socket) => { // socket connection
     socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
             const videoId = getYoutubeVideoId(data.videoId)
-            // get video data from DB!
             await insertVideoDB(videoId);
             const videoInfo = await readVideoDB(videoId);
             currentServerState.currentVideo = processResponse(videoInfo.metadata);
@@ -284,11 +283,10 @@ wsServer.on("connection", (socket) => { // socket connection
     });
     socket.on("addPlaylist", async (data) => {
         if (data.videoId != "") {
-            const playlistVideoId = getYoutubeVideoId(data.videoId);
-            await insertVideoDB(playlistVideoId);
-            const videoInfo = await readVideoDB(playlistVideoId);
-            const metadata = processResponse(videoInfo.metadata);
-            currentServerState.playlist.push(metadata);
+            const videoId = getYoutubeVideoId(data.videoId);
+            await insertVideoDB(videoId);
+            const videoInfo = await readVideoDB(videoId);
+            currentServerState.playlist.push(processResponse(videoInfo.metadata));
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })
