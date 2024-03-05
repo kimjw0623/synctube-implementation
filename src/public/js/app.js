@@ -161,9 +161,31 @@ function listComments(videoComment) {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
-        li.innerText = `${author}: ${comment}`;
+        //li.innerText = `${author}\n ${comment}`;
+        const commentUserSpan = document.createElement("span");
+        commentUserSpan.innerText = author;
+        commentUserSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px;';
+        const commentTextSpan = document.createElement("span");
+        commentTextSpan.innerText = comment;
+        commentTextSpan.style.cssText = 'display:block; margin-left:10px;';
+        li.appendChild(commentUserSpan);
+        li.appendChild(commentTextSpan);
         newCommentsUl.appendChild(li);
     });
+}
+
+function setVideoTitle(data) {
+    const videoTitle = document.getElementById("videoTitle");
+    const videoTitleSpan = document.createElement("span");
+    videoTitleSpan.innerText = data.currentVideo.title;
+    videoTitleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px; font-size: 20px';
+    const videoChannelSpan = document.createElement("span");
+    videoChannelSpan.innerText = data.currentVideo.channelTitle;
+    videoChannelSpan.style.cssText = 'display:block; margin-left:10px; font-size: 12px';
+    
+    videoTitle.appendChild(videoTitleSpan);
+    videoTitle.appendChild(videoChannelSpan);
+
 }
 
 function handlePlaylistSubmit(event) {
@@ -224,6 +246,7 @@ socket.on("videoUrlChange", (data, videoComment) => {
     blockStateChange(function () {
         currentTime = 0;
         listComments(videoComment);
+        setVideoTitle(data);
         player.loadVideoById(mediaContentUrl = String(data.currentVideo.id));
         player.seekTo(0, true);
         player.playVideo();
@@ -237,6 +260,7 @@ socket.on("initState", (data, videoComment) => {
         setTimeout(function () {
             player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
         }, 500);
+        setVideoTitle(data);
         console.log(data.playerTime);
         if (data.playerState === YT.PlayerState.PLAYING) {
             player.playVideo();
@@ -300,23 +324,24 @@ socket.on("updatePlaylist", (data) => {
     
         const channelSpan = document.createElement("span");
         channelSpan.innerText = videoItem.channelTitle;
-        channelSpan.style.cssText = 'display:block; margin-left:110px;';
+        channelSpan.style.cssText = 'margin-left:10px; float:left;';
     
         const deleteButton = document.createElement("button");
         deleteButton.innerText = 'Delete';
+        deleteButton.classList.add("material-symbols-outlined");
         deleteButton.style.cssText = 'float:right;';
         deleteButton.onclick = function() {
             li.remove();
             handleDeletePlaylist();
         };
 
-        // const durationSpan = document.createElement("span");
-        // durationSpan.innerText = videoItem.duration;
-        // durationSpan.style.cssText = 'display:block; margin-left:110px;';
+        const durationSpan = document.createElement("span");
+        durationSpan.innerText = videoItem.duration;
+        durationSpan.style.cssText = 'display:block; margin-left:110px;';
     
         li.appendChild(img);
         li.appendChild(titleSpan);
-        //li.appendChild(durationSpan);
+        li.appendChild(durationSpan);
         li.appendChild(channelSpan);
         li.appendChild(deleteButton);
         

@@ -11,6 +11,7 @@ html(lang="en")
         link(rel="preconnect",href="https://fonts.gstatic.com")
         link(href="https://fonts.googleapis.com/css2?family=Roboto:wght@100&display=swap",rel="stylesheet")
         link(rel='stylesheet', href='/public/css/test.css')
+        link(rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0")
     body
         .container-fluid
             .row 
@@ -21,12 +22,14 @@ html(lang="en")
                         button.btn.btn-outline-light(id="playButton",type='button',class="round") Play now
                         button.btn.btn-outline-light(id="addButton",type='button',class="round") Add list
             .row.flex-grow-1#main
-                .col-lg-8
+                .col-lg-7
                     .row#player
                         .col-flex
                             script(src="/public/js/player.js")
+                    .row 
+                        .col-flex#videoTitle
                     //.video-details.text-black.p-2 K-POP Piano Collection, 2023-11 | Kpop Piano Cover
-                    .row
+                    .row.my-3
                         .col-flex
                             .comment-container(id="comment")
                                 ul
@@ -53,7 +56,7 @@ html(lang="en")
                                     animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
                                     ghostClass: 'sortable-ghost' // Class name for the drop placeholder
                                     });
-                            .chat-container.mx-2(id="room",class="rounded")
+                            .chat-container.p-0(id="room",class="rounded")
                                 .chat-messages#chatMessages
                                     ul
                                 .chat-input-container

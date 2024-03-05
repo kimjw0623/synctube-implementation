@@ -11,6 +11,16 @@ body, html {
     color: #fff; /* Darker text for better contrast */
 }
 
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+  color: #fff;
+  background-color: transparent;
+}
+
 .container{
     display: flex;
     flex-direction: column;
@@ -19,7 +29,7 @@ body, html {
 
 .playlist-container{
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     height: 500px;
 }
 
@@ -57,6 +67,10 @@ body, html {
     margin-top: 10px;
 }
 
+.commentBox {
+    margin-top: 10px;
+}
+
 .footer {
     text-align: center;
     padding: 10px;
@@ -65,19 +79,20 @@ body, html {
 }
 
 .list-group-item {
-    background-color: #535555; /* Light blue for footer */
+    background-color: #39323f; /* Light blue for footer */
     color: #ffffff;
 }
 
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 500px;
+    height: 400px;
+    width: 450px;
     background-color: #39323f; /* White background for chat container */
 }
 
 .comment-container {
-    background-color: #39323f; /* White background for chat container */
+    background-color: #1a1a1a; /* White background for chat container */
 }
 
 .sortable-ghost {

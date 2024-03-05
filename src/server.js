@@ -71,8 +71,8 @@ async function listComments(videoId) {
     const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
     let commentList
     try {
-        const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
-        const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
+        const response = await fetch(apiUrl);
+        const data = await response.json();
         commentList = Object.assign({}, data);
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -87,8 +87,8 @@ async function getVideoMetadata(videoId) {
     const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=contentDetails,snippet`;
     let videoMetadata;
     try {
-        const response = await fetch(apiUrl); // 응답이 도착할 때까지 대기
-        const data = await response.json(); // 응답을 JSON으로 변환할 때까지 대기
+        const response = await fetch(apiUrl);
+        const data = await response.json();
         videoMetadata = Object.assign({}, data);
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -134,25 +134,49 @@ function processResponse(response) {
         title: title,
         thumbnailUrl: thumbnailUrl,
         channelTitle: channelTitle,
-        duration: duration
+        duration: parseISODuration(duration, false)
     }
     
-    return result
+    return result;
 }
 
-function parseISODuration(duration) {
+function timeStringToSeconds(timeString) {
+    var timePattern = /^(\d+):?(\d+)?:?(\d+)?$/;
+    var match = timePattern.exec(timeString);
+    
+    var hours = parseInt(match[1]) || 0;
+    var minutes = parseInt(match[2]) || 0;
+    var seconds = parseInt(match[3]) || 0;
+    
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+
+function parseISODuration(duration, onlySecond = true) {
     const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
     const matches = duration.match(regex);
-
     const hours = parseInt(matches[4]) || 0;
     const minutes = parseInt(matches[5]) || 0;
     const seconds = parseInt(matches[6]) || 0;
 
-    return (hours * 60 + minutes) * 60 + seconds;
+    if (onlySecond) {
+        return (hours * 60 + minutes) * 60 + seconds;
+    }
+    else {
+        if (hours === 0) {
+            return `${minutes}:${seconds}`;
+        }
+        else if (minutes === 0) {
+            return `${seconds}`;
+        }
+        else {
+            return `${hours}:${minutes}:${seconds}`;
+        }
+    }
 }
 
 function isVideoEnd(duration, currentTime) {
-    const durationSeconds = parseISODuration(duration);
+    const durationSeconds = timeStringToSeconds(duration);
     if (Math.abs(durationSeconds - currentTime < 2)) {
         return true
     }
