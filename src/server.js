@@ -5,10 +5,13 @@ import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import { generateFromEmail, generateUsername } from "unique-username-generator";
 const app = express();
 
 dotenv.config();
+
+const secretKey = 'secretKey';
 
 mongoose.connect('mongodb://localhost:27017/videos', {
     useNewUrlParser: true,
@@ -216,6 +219,8 @@ const roomList = [];
 
 wsServer.on("connection", (socket) => { // socket connection
     socket["nickname"] = generateUsername("", 0, 15);
+    socket["JWT"] = "client-jwt";
+    console.log(`Socket query: ${socket.handshake.query.token}`);
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);

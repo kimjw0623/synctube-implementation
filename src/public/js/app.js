@@ -1,4 +1,6 @@
-const socket = io.connect("http://localhost:3000/?rand=" + Math.round(Math.random() * 10000000)); // io();
+let socket = io.connect("http://localhost:3000/", {
+    query: {token: "client_jwt"}
+});
 
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
@@ -7,6 +9,7 @@ const chatForm = document.getElementById("chatForm");
 
 room.hidden = true;
 let roomName = 1;
+let token = "";
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -75,12 +78,16 @@ socket.on("bye", (newCount, user) => {
 
 socket.on("new_message", (a, newCount) => {
     console.log(a);
-    addMessage(a)});
+    addMessage(a)
+});
+
 socket.on("room_change", (rooms) => {
     // if(rooms.length === 0){
     //     roomList.innerHTML = "";
     //     return;
     // }
+    console.log(socket["nickname"]);
+    console.log()
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = ""; // 비워주기
     rooms.forEach(room => {
@@ -179,6 +186,10 @@ function listComments(videoComment) {
 
 function setVideoTitle(data) {
     const videoTitle = document.getElementById("videoTitle");
+    const videoSpan = videoTitle.querySelectorAll("span");
+    videoSpan.forEach(span => {
+        span.remove()
+    });
     const videoTitleSpan = document.createElement("span");
     videoTitleSpan.innerText = data.currentVideo.title;
     videoTitleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px; font-size: 20px';
