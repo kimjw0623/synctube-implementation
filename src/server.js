@@ -216,16 +216,34 @@ const currentServerState = {
 }
 
 const roomList = [];
+const tokenDict = {};
 
 wsServer.on("connection", (socket) => { // socket connection
-    socket["nickname"] = generateUsername("", 0, 15);
-    socket["JWT"] = "client-jwt";
-    console.log(`Socket query: ${socket.handshake.query.token}`);
+    if (socket.handshake.query.token) {
+        console.log(socket.handshake.query.token)
+        jwt.verify(socket.handshake.query.token, secretKey, (err, decoded) => {
+            if (err) {
+                console.error('Token verification failed:', err);
+                return;
+            }
+            console.log('Decoded payload:', decoded);
+            // Enter room corresponding to the token
+        })
+    }
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
     socket.on("enter_room", (roomName, done) => {
+        // Give token and nickname when enter room
+        const nickname = generateUsername("", 0, 15);
+        const token = jwt.sign({ nickname: socket["nickname"]}, secretKey, { expiresIn: '1d' });
+        socket["JWT"] = token;
+        socket["nickname"] = nickname;
+        tokenDict[token] = nickname;
+        console.log(token);
+        console.log(nickname);
+
         socket.join(roomName);
         done();
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);

@@ -1,6 +1,9 @@
-let socket = io.connect("http://localhost:3000/", {
-    query: {token: "client_jwt"}
-});
+let socket = io.connect("http://localhost:3000/");
+if (localStorage.getItem("token")) {
+    let socket = io.connect("http://localhost:3000/", {
+        query: {token: localStorage.getItem("token")}
+    });
+}
 
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
@@ -39,6 +42,10 @@ function handleNameSubmit(event) {
 function showRoom() {
     welcome.hidden = true;
     room.hidden = false;
+    // localStorage.setItem("token",socket["JWT"])
+    // socket = io.connect("http://localhost:3000/", {
+    //     query: {token: localStorage.getItem("token")}
+    // });
     const h3 = room.querySelector("h3");
     //h3.innerText = `Room ${roomName}`;
     //const msgForm = room.querySelector("#msg");
