@@ -1,9 +1,13 @@
-let socket = io.connect("http://localhost:3000/");
-if (localStorage.getItem("token")) {
-    let socket = io.connect("http://localhost:3000/", {
-        query: {token: localStorage.getItem("token")}
-    });
-}
+let token = localStorage.getItem('token');
+let query = token ? { query: `token=${token}` } : {};
+let isPlayerReady = false
+let socket = io.connect('http://localhost:3000', query);
+
+socket.on('token', (token) => {
+    localStorage.setItem('token', token);
+    console.log('토큰 저장됨:', token);
+});
+
 
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
@@ -12,7 +16,6 @@ const chatForm = document.getElementById("chatForm");
 
 room.hidden = true;
 let roomName = 1;
-let token = "";
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -42,7 +45,10 @@ function handleNameSubmit(event) {
 function showRoom() {
     welcome.hidden = true;
     room.hidden = false;
-    // localStorage.setItem("token",socket["JWT"])
+    console.log(socket);
+    // if (localStorage.getItem("token") === null) {
+    //     localStorage.setItem("token", socket["jwt"])
+    // }
     // socket = io.connect("http://localhost:3000/", {
     //     query: {token: localStorage.getItem("token")}
     // });
@@ -67,8 +73,14 @@ function handleRoomSubmit(event) {
     socket.emit("enter_room", input.value, showRoom);
     socket.emit("initState", socket.id);
     input.value = "";
-    
 }
+
+socket.on("enter_room_wtoken", (room) => {
+    console.log("reconnected");
+    roomName = room;
+    socket.emit("enter_room", room, showRoom);
+    socket.emit("initState", socket.id);
+});
 
 form.addEventListener("submit", handleRoomSubmit);
 
@@ -95,6 +107,9 @@ socket.on("room_change", (rooms) => {
     // }
     console.log(socket["nickname"]);
     console.log()
+    if (localStorage.getItem("token") === null) {
+        return
+    }
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = ""; // 비워주기
     rooms.forEach(room => {
@@ -145,6 +160,10 @@ function blockStateChange(targetFunction, timeOut=250){
         isStateChangeEvent = true;
         console.log("now stateChange event enable!");
     }, timeOut);  
+}
+
+function onPlayerReady() {
+    isPlayerReady = true;
 }
 
 function onPlayerStateChange(event) {
@@ -276,24 +295,30 @@ socket.on("videoUrlChange", (data, videoComment) => {
 
 socket.on("initState", (data, videoComment) => {
     // initialize player state with server data
-    blockStateChange(function () {
-        listComments(videoComment);
-        setTimeout(function () {
-            player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
-        }, 500);
-        setVideoTitle(data);
-        console.log(data.playerTime);
-        if (data.playerState === YT.PlayerState.PLAYING) {
-            player.playVideo();
-        } else if (data.playerState === YT.PlayerState.PAUSED) {
-            player.pauseVideo();
+    const waitForPlayerReady = setInterval(() => {
+        if (isPlayerReady) {
+            clearInterval(waitForPlayerReady);
+            blockStateChange(function () {
+                listComments(videoComment);
+                setTimeout(function () {
+                    player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
+                    if (data.playerState === YT.PlayerState.PLAYING) {
+                        player.playVideo();
+                    } else if (data.playerState === YT.PlayerState.PAUSED) {
+                        player.pauseVideo();
+                    }
+                }, 100);
+                setVideoTitle(data);
+                console.log(data.playerTime);
+                
+            });
+            document.getElementById("main").style.display = "";
+            appPlayer.style.display = "";
+            playlistChat.style.display = "";
+            reportCurrentTime();
+            console.log("init done!");
         }
-    });
-    document.getElementById("main").style.display = "";
-    appPlayer.style.display = "";
-    playlistChat.style.display = "";
-    reportCurrentTime();
-    console.log("init done!");
+    }, 100);
 });
 
 socket.on("stateChange", data => {
