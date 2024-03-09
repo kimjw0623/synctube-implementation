@@ -21,6 +21,20 @@ body, html {
   background-color: transparent;
 }
 
+.text-left{
+    font-size: 20px;
+}
+
+.head-right{
+    text-align: right;
+}
+
+.head-center{
+    text-align: center;
+    padding-right: 0px;
+    margin-left: 5px;
+}
+
 .container{
     display: flex;
     flex-direction: column;

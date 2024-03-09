@@ -24,12 +24,17 @@ html(lang="en")
                     ul
         
             .row 
-                .input-group.p-2#videoUrl
-                    .col.text-left.py-2 SYNCTUBE
-                    input.form-control(id="playNow",type='text', placeholder='Enter media url here').py-1
-                    .input-group-append.px-3
-                        button.btn.btn-outline-light(id="playButton",type='button',class="round") Play now
-                        button.btn.btn-outline-light(id="addButton",type='button',class="round") Add list
+                .input-group.py-3#videoUrl
+                    .col
+                        .text-left SYNCTUBE
+                    .col.head-center
+                        input.form-control(id="playNow",type='text', placeholder='Enter media url here')
+                    .col
+                        .input-group-append
+                            button.btn.btn-outline-light(id="playButton",type='button',class="round") Play now
+                            button.btn.btn-outline-light(id="addButton",type='button',class="round") Add list
+                    .col.head-right
+                        button.btn.btn-outline-light(id="home",type='submit',class="round") Home
             .row.flex-grow-1#main
                 .col-lg-7
                     .row#player
@@ -37,7 +42,6 @@ html(lang="en")
                             script(src="/public/js/player.js")
                     .row 
                         .col-flex#videoTitle
-                    //.video-details.text-black.p-2 K-POP Piano Collection, 2023-11 | Kpop Piano Cover
                     .row.my-3
                         .col-flex
                             .comment-container(id="comment")
@@ -45,12 +49,12 @@ html(lang="en")
                 .col-lg-4#playlistChat
                     .row
                         div(class="btn-group btn-group-toggle center",data-toggle="buttons")
-                            |       <label class="btn btn-secondary active" name="radio">
-                            |           <input type="radio" name="options" id="option1" autocomplete="off" checked> Playlist
-                            |       </label>
-                            |       <label class="btn btn-secondary" name="radio">
-                            |           <input type="radio" name="options" id="option2" autocomplete="off"> Chat
-                            |       </label>
+                            |    <label class="btn btn-secondary active" name="radio">
+                            |        <input type="radio" name="options" id="option1" autocomplete="off" checked> Playlist
+                            |    </label>
+                            |    <label class="btn btn-secondary" name="radio">
+                            |        <input type="radio" name="options" id="option2" autocomplete="off"> Chat
+                            |    </label>
                     .row
                         .playlist-chat-container
                             .playlist-container.p-0#playlistForm
@@ -79,10 +83,3 @@ html(lang="en")
         script(src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous")
         script(src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
         script(src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous")
-//- main
-        //-     div#welcome
-        //-         form 
-        //-             input(placeholder="room name", required, type="text")
-        //-             button Enter Room
-        //-         h4 Open Rooms:
-        //-         ul

@@ -6,7 +6,7 @@ import fetch from "node-fetch";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { generateFromEmail, generateUsername } from "unique-username-generator";
+import { generateUsername } from "unique-username-generator";
 const app = express();
 
 dotenv.config();
@@ -216,7 +216,8 @@ const currentServerState = {
 }
 
 const roomList = [];
-const tokenDict = {};
+const tokenNicknameDict = {}; // TODO: move to DB!
+const tokenRoomDict = {}; // TODO: move to DB!
 
 wsServer.on("connection", (socket) => { // socket connection
     console.log(socket.handshake.query.token)
@@ -228,7 +229,8 @@ wsServer.on("connection", (socket) => { // socket connection
                 return;
             }
             console.log('Decoded payload:', decoded);
-            socket.emit("enter_room_wtoken", 123);
+            console.log(tokenRoomDict);
+            socket.emit("enter_room_wtoken", tokenRoomDict[socket.handshake.query.token]);
             console.log("asssdd")
             // Enter room corresponding to the token
         })
@@ -237,14 +239,13 @@ wsServer.on("connection", (socket) => { // socket connection
         // Give token and nickname when enter room
         const nickname = generateUsername("", 0, 15);
         socket["nickname"] = nickname;
-        const token = jwt.sign({ nickname: socket["nickname"]}, secretKey, { expiresIn: '1d' });
+        const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
         socket["jwt"] = token;
-        tokenDict[token] = nickname;
+        tokenNicknameDict[token] = nickname;
         console.log(token);
         console.log(nickname);
         wsServer.to(socket.id).emit('token', token);
     }
-
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
@@ -254,6 +255,8 @@ wsServer.on("connection", (socket) => { // socket connection
         done();
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
         wsServer.sockets.emit("room_change", publicRooms());
+        console.log(`roomname: ${roomName}`);
+        tokenRoomDict[socket.handshake.query.token] = roomName;
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));

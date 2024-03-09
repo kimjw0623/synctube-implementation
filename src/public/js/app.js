@@ -5,7 +5,7 @@ let socket = io.connect('http://localhost:3000', query);
 
 socket.on('token', (token) => {
     localStorage.setItem('token', token);
-    console.log('토큰 저장됨:', token);
+    console.log('Toekn saved: ', token);
 });
 
 
@@ -14,8 +14,6 @@ const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
 
-room.hidden = true;
-let roomName = 1;
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -29,7 +27,7 @@ function handleMessageSubmit(event){
     const input = chatForm.querySelector("input");
     const value = input.value
     socket.emit("new_message", input.value, roomName, () => {
-        addMessage(`You: ${value}`); // because of L24, input.value become "" before addMessage!
+        addMessage(`You: ${value}`);
     });
     input.value = ""
 }
@@ -46,18 +44,11 @@ function showRoom() {
     welcome.hidden = true;
     room.hidden = false;
     console.log(socket);
-    // if (localStorage.getItem("token") === null) {
-    //     localStorage.setItem("token", socket["jwt"])
-    // }
-    // socket = io.connect("http://localhost:3000/", {
-    //     query: {token: localStorage.getItem("token")}
-    // });
     const h3 = room.querySelector("h3");
     //h3.innerText = `Room ${roomName}`;
     //const msgForm = room.querySelector("#msg");
     const nameForm = room.querySelector("#name");
     chatForm.addEventListener("submit", handleMessageSubmit);
-    //nameForm.addEventListener("submit", handleNameSubmit);
     // playlist, chat
     document.getElementById("playlistForm").hidden = false;
     document.getElementById("room").hidden = true;
@@ -105,20 +96,16 @@ socket.on("room_change", (rooms) => {
     //     roomList.innerHTML = "";
     //     return;
     // }
-    console.log(socket["nickname"]);
-    console.log()
     if (localStorage.getItem("token") === null) {
         return
     }
     const roomList = welcome.querySelector("ul");
-    roomList.innerHTML = ""; // 비워주기
+    roomList.innerHTML = "";
     rooms.forEach(room => {
-        li = document.createElement("li");
         const roomListSpan = document.createElement("span");
         roomListSpan.innerText = room;
         roomListSpan.style.cssText = 'font-weight:bold; display:block;';
         roomList.appendChild(roomListSpan);
-        //roomList.appendChild(li);
     })
 });
 
@@ -129,6 +116,7 @@ const playButton = appPlayer.querySelector("#playButton");
 const addPlaylistButton = document.querySelector("#addButton");
 const commentDiv = document.getElementById("comment");
 const playlistChat = document.getElementById("playlistChat");
+const homeButton = document.getElementById("home");
 
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
@@ -137,6 +125,9 @@ let currentTime = 0;
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
 playlistChat.style.display = "none";
+
+room.hidden = true;
+let roomName = 1;
 
 
 // 현재 재생 시간을 정기적으로 서버에 보고하는 함수
@@ -167,7 +158,7 @@ function onPlayerReady() {
 }
 
 function onPlayerStateChange(event) {
-    if (isStateChangeEvent && event.data != 3) { // 초기화 중이 아닐 때만 서버로 상태 변경 알림
+    if (isStateChangeEvent && event.data != 3) {
         socket.emit("stateChange", {
             room: roomName,
             playerState: event.data,
@@ -197,7 +188,6 @@ function listComments(videoComment) {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
-        //li.innerText = `${author}\n ${comment}`;
         const commentUserSpan = document.createElement("span");
         commentUserSpan.innerText = author;
         commentUserSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px;';
@@ -278,8 +268,20 @@ function handleDeletePlaylist() {
     socket.emit("changePlaylist", idList, roomName);
 }
 
+function handleHomeSubmit() {
+    // 1. initialize token in localStorage
+    // 2. hide/reveal objects
+    localStorage.removeItem("token");
+    room.hidden = true;
+    document.getElementById("main").style.display = "none";
+    appPlayer.style.display = "none";
+    playlistChat.style.display = "none";
+    document.getElementById("welcome").hidden = false;
+}
+
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
+homeButton.addEventListener("click", handleHomeSubmit);
 
 socket.on("videoUrlChange", (data, videoComment) => {
     //console.log("get Urlchange!")
