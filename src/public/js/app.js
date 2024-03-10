@@ -1,19 +1,35 @@
 let token = localStorage.getItem('token');
 let query = token ? { query: `token=${token}` } : {};
-let isPlayerReady = false
 let socket = io.connect('http://localhost:3000', query);
+let roomName = 1;
+
+const appPlayer = document.getElementById("videoUrl");
+const playButton = appPlayer.querySelector("#playButton");
+const addPlaylistButton = document.querySelector("#addButton");
+const commentDiv = document.getElementById("comment");
+const playlistChat = document.getElementById("playlistChat");
+const homeButton = document.getElementById("home");
+
+let lastPlayerState = -1;
+let isStateChangeEvent = false;
+let lastReportedTime = 0;
+let currentTime = 0;
+document.getElementById("main").style.display = "none";
+appPlayer.style.display = "none";
+playlistChat.style.display = "none";
+
+room.hidden = true;
 
 socket.on('token', (token) => {
     localStorage.setItem('token', token);
     console.log('Toekn saved: ', token);
 });
 
-
+let isPlayerReady = false
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
-
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -61,15 +77,30 @@ function handleRoomSubmit(event) {
     event.preventDefault();
     const input = form.querySelector("input");
     roomName = input.value;
-    socket.emit("enter_room", input.value, showRoom);
-    socket.emit("initState", socket.id);
-    input.value = "";
+    if (localStorage.getItem("token")) {
+        const msg = {
+            token: localStorage.getItem("token"),
+            roomName: roomName
+        };
+        console.log("msg: ",msg);
+        socket.emit("enterRoom", msg, showRoom);
+        socket.emit("initState", socket.id);
+        input.value = "";
+        showRoom();
+    }
+    else {
+        throw "No token in the localStorage"
+    }
 }
 
-socket.on("enter_room_wtoken", (room) => {
-    console.log("reconnected");
+socket.on("enterRoomwToken", (room) => {
+    console.log("Reconnected with token.");
     roomName = room;
-    socket.emit("enter_room", room, showRoom);
+    const msg = {
+        token: localStorage.getItem("token"),
+        roomName: roomName
+    };
+    socket.emit("enterRoom", msg, showRoom);
     socket.emit("initState", socket.id);
 });
 
@@ -111,26 +142,6 @@ socket.on("room_change", (rooms) => {
 
 // --------------------------------------- //
 
-const appPlayer = document.getElementById("videoUrl");
-const playButton = appPlayer.querySelector("#playButton");
-const addPlaylistButton = document.querySelector("#addButton");
-const commentDiv = document.getElementById("comment");
-const playlistChat = document.getElementById("playlistChat");
-const homeButton = document.getElementById("home");
-
-let lastPlayerState = -1;
-let isStateChangeEvent = false;
-let lastReportedTime = 0;
-let currentTime = 0;
-document.getElementById("main").style.display = "none";
-appPlayer.style.display = "none";
-playlistChat.style.display = "none";
-
-room.hidden = true;
-let roomName = 1;
-
-
-// 현재 재생 시간을 정기적으로 서버에 보고하는 함수
 function reportCurrentTime() {
     setInterval(() => {
         currentTime = player.getCurrentTime();
@@ -138,7 +149,7 @@ function reportCurrentTime() {
             if (Math.abs(currentTime - lastReportedTime) >= 1) {
                 socket.emit("syncTime", roomName, currentTime);
                 lastReportedTime = currentTime;
-            } //player.getPlayerState() === YT.PlayerState.PLAYING && 
+            }
         }
     }, 2000);
 }

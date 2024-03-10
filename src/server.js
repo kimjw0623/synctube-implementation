@@ -4,31 +4,11 @@ import {Server} from "socket.io";
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
+import * as utils from "./util/utils.js";
+
 const app = express();
-
-dotenv.config();
-
-const secretKey = 'secretKey';
-
-mongoose.connect('mongodb://localhost:27017/videos', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connect.'))
-.catch(err => console.error('MongoDB failed.', err));
-
-const Schema = mongoose.Schema;
-
-const userSchema = new Schema({
-    videoId: { type: String, required: true, unique: true },
-    comment: { type: "Mixed", default: {} },
-    metadata: { type: "Mixed", default: {} },
-});
-const videoDB = mongoose.model('Video', userSchema);
-
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
@@ -38,6 +18,20 @@ app.get("/test/", (_, res) => res.render("test", {
     chatMessages: ["qwer","asdf"] // Make sure this is an array
 }));
 
+dotenv.config();
+
+const secretKey = 'secretKey';
+const currentServerState = {
+    currentVideo: {},
+    playerState: -1,
+    playerTime: 0,
+    playerVolume: 20,
+    playlist: []
+}
+const roomList = [];
+const tokenNicknameDict = {}; // TODO: move to DB!
+const tokenRoomDict = {}; // TODO: move to DB!
+const defaultRoom = "abc";
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
 
 const httpServer = http.createServer(app);
@@ -70,63 +64,6 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-async function listComments(videoId) {
-    const apiKey = process.env.YOUTUBE_DATA_API_KEY;
-    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
-    let commentList
-    try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        commentList = Object.assign({}, data);
-    } catch (error) {
-        console.error('Error fetching comments:', error);
-    }
-
-    return commentList
-}
-
-
-async function getVideoMetadata(videoId) {
-    const apiKey = process.env.YOUTUBE_DATA_API_KEY;
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=contentDetails,snippet`;
-    let videoMetadata;
-    try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        videoMetadata = Object.assign({}, data);
-    } catch (error) {
-        console.error('Error fetching comments:', error);
-    }
-
-    return videoMetadata
-}
-
-async function insertVideoDB(videoId) {
-    const comment = await listComments(videoId);
-    const metadata = await getVideoMetadata(videoId);
-    // check whether videoId exists
-    const res = await videoDB.find({ videoId: videoId }).exec();
-    if (res.length === 0) {
-        await videoDB.create({
-            videoId: videoId,
-            comment: comment,
-            metadata: metadata,
-        });
-    }
-}
-
-async function readVideoDB(videoId) {
-    const videoInfo = await videoDB.find({ videoId: videoId }).exec();
-    if (videoInfo.length != 0){
-        const comment = videoInfo[0].comment;
-        const metadata = videoInfo[0].metadata;
-        return {comment: comment, metadata: metadata}
-    }
-    else {
-        return {comment: undefined, metadata: undefined}
-    }
-}
-
 function processResponse(response) {
     const id = response.items[0].id;
     const title = response.items[0].snippet.title;
@@ -138,49 +75,14 @@ function processResponse(response) {
         title: title,
         thumbnailUrl: thumbnailUrl,
         channelTitle: channelTitle,
-        duration: parseISODuration(duration, false)
+        duration: utils.parseISODuration(duration, false)
     }
     
     return result;
 }
 
-function timeStringToSeconds(timeString) {
-    var timePattern = /^(\d+):?(\d+)?:?(\d+)?$/;
-    var match = timePattern.exec(timeString);
-    
-    var hours = parseInt(match[1]) || 0;
-    var minutes = parseInt(match[2]) || 0;
-    var seconds = parseInt(match[3]) || 0;
-    
-    return hours * 3600 + minutes * 60 + seconds;
-}
-
-
-function parseISODuration(duration, onlySecond = true) {
-    const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
-    const matches = duration.match(regex);
-    const hours = parseInt(matches[4]) || 0;
-    const minutes = parseInt(matches[5]) || 0;
-    const seconds = parseInt(matches[6]) || 0;
-
-    if (onlySecond) {
-        return (hours * 60 + minutes) * 60 + seconds;
-    }
-    else {
-        if (hours === 0) {
-            return `${minutes}:${seconds}`;
-        }
-        else if (minutes === 0) {
-            return `${seconds}`;
-        }
-        else {
-            return `${hours}:${minutes}:${seconds}`;
-        }
-    }
-}
-
 function isVideoEnd(duration, currentTime) {
-    const durationSeconds = timeStringToSeconds(duration);
+    const durationSeconds = utils.timeStringToSeconds(duration);
     if (Math.abs(durationSeconds - currentTime < 2)) {
         return true
     }
@@ -192,46 +94,42 @@ function isVideoEnd(duration, currentTime) {
 async function initializeDev() {
     const initVideo = "1EJcaxYMZzQ";
     const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
-
-    await insertVideoDB(initVideo);
-    let videoInfo = await readVideoDB(initVideo);
+    await utils.insertVideoDB(initVideo);
+    let videoInfo = await utils.readVideoDB(initVideo);
     currentServerState.currentVideo = processResponse(videoInfo.metadata);
     
     if (initPlaylist.length != 0) {
         initPlaylist.forEach(async videoId => {
-            await insertVideoDB(videoId);
-            videoInfo = await readVideoDB(videoId);
+            await utils.insertVideoDB(videoId);
+            videoInfo = await utils.readVideoDB(videoId);
             currentServerState.playlist.push(processResponse(videoInfo.metadata));
         });
     }
     
 }
 
-const currentServerState = {
-    currentVideo: {},
-    playerState: -1,
-    playerTime: 0,
-    playerVolume: 20,
-    playlist: []
+async function getMetadataFromId(data) {
+    const videoId = getYoutubeVideoId(data.videoId)
+    await insertVideoDB(videoId);
+    const videoInfo = await utils.readVideoDB(videoId);
+    return processResponse(videoInfo.metadata);
 }
 
-const roomList = [];
-const tokenNicknameDict = {}; // TODO: move to DB!
-const tokenRoomDict = {}; // TODO: move to DB!
-
 wsServer.on("connection", (socket) => { // socket connection
-    console.log(socket.handshake.query.token)
     if (socket.handshake.query.token) {
-        console.log(socket.handshake.query.token)
         jwt.verify(socket.handshake.query.token, secretKey, (err, decoded) => {
             if (err) {
                 console.error('Token verification failed:', err);
                 return;
             }
             console.log('Decoded payload:', decoded);
-            console.log(tokenRoomDict);
-            socket.emit("enter_room_wtoken", tokenRoomDict[socket.handshake.query.token]);
-            console.log("asssdd")
+            if (tokenRoomDict[socket.handshake.query.token]) {
+                socket.emit("enterRoomwToken", tokenRoomDict[socket.handshake.query.token]);
+            }
+            else {
+                console.log("default room...")
+                socket.emit("enterRoomwToken", defaultRoom);
+            }
             // Enter room corresponding to the token
         })
     }
@@ -242,21 +140,27 @@ wsServer.on("connection", (socket) => { // socket connection
         const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
         socket["jwt"] = token;
         tokenNicknameDict[token] = nickname;
-        console.log(token);
-        console.log(nickname);
         wsServer.to(socket.id).emit('token', token);
     }
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
-    socket.on("enter_room", (roomName, done) => {
+    socket.on("enterRoom", (msg, done) => {
+        console.log("enterRoom: ", msg, done);
+        const roomName = msg.roomName
         socket.join(roomName);
-        done();
+        if (typeof done === "function") {
+            done();
+        }
+        else {
+            console.log("done is not a function!!!!!!!!!!")
+        }
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
         wsServer.sockets.emit("room_change", publicRooms());
         console.log(`roomname: ${roomName}`);
-        tokenRoomDict[socket.handshake.query.token] = roomName;
+        console.log(msg.token);
+        tokenRoomDict[msg.token] = roomName;
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
@@ -275,8 +179,7 @@ wsServer.on("connection", (socket) => { // socket connection
 
     // init player
     socket.on("initState", async (socketId) => {
-        const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
-        console.log(currentServerState.playlist);
+        const videoInfo = await utils.readVideoDB(currentServerState.currentVideo.id);
         wsServer.to(socketId).emit("initState", currentServerState, videoInfo.comment);
         wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
     });
@@ -286,7 +189,7 @@ wsServer.on("connection", (socket) => { // socket connection
         if (isVideoEnd(currentServerState.currentVideo.duration,currentServerState.playerTime) ||
             (data.playerState === 0 && currentServerState.playlist.length != 0)) { // video ends
             currentServerState.currentVideo = currentServerState.playlist.shift();
-            const videoInfo = await readVideoDB(currentServerState.currentVideo.id);
+            const videoInfo = await utils.readVideoDB(currentServerState.currentVideo.id);
             wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
         }
@@ -304,10 +207,7 @@ wsServer.on("connection", (socket) => { // socket connection
     });
     socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
-            const videoId = getYoutubeVideoId(data.videoId)
-            await insertVideoDB(videoId);
-            const videoInfo = await readVideoDB(videoId);
-            currentServerState.currentVideo = processResponse(videoInfo.metadata);
+            currentServerState.currentVideo = await getMetadataFromId(data);
             currentServerState.playerTime = 0;
             // send to all members in room
             wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
@@ -315,10 +215,7 @@ wsServer.on("connection", (socket) => { // socket connection
     });
     socket.on("addPlaylist", async (data) => {
         if (data.videoId != "") {
-            const videoId = getYoutubeVideoId(data.videoId);
-            await insertVideoDB(videoId);
-            const videoInfo = await readVideoDB(videoId);
-            currentServerState.playlist.push(processResponse(videoInfo.metadata));
+            currentServerState.playlist.push(await getMetadataFromId(data));
             wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
         }
     })
@@ -335,5 +232,5 @@ wsServer.on("connection", (socket) => { // socket connection
     })
 });
 
-await initializeDev(); // should remove in production
+await initializeDev(); // should remove at production
 httpServer.listen(3000, handleListen);
