@@ -9,27 +9,27 @@ const addPlaylistButton = document.querySelector("#addButton");
 const commentDiv = document.getElementById("comment");
 const playlistChat = document.getElementById("playlistChat");
 const homeButton = document.getElementById("home");
+const welcome = document.getElementById("welcome");
+const form = welcome.querySelector("form");
+const room = document.getElementById("room");
+const chatForm = document.getElementById("chatForm");
 
 let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
 let currentTime = 0;
+let isPlayerReady = false;
+
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
 playlistChat.style.display = "none";
-
 room.hidden = true;
 
-socket.on('token', (token) => {
+socket.on('issueToken', (token) => {
     localStorage.setItem('token', token);
-    console.log('Toekn saved: ', token);
+    console.log('Token saved: ', token);
 });
 
-let isPlayerReady = false
-const welcome = document.getElementById("welcome");
-const form = welcome.querySelector("form");
-const room = document.getElementById("room");
-const chatForm = document.getElementById("chatForm");
 
 function addMessage(message) {
     const ul = room.querySelector("ul");
@@ -37,6 +37,7 @@ function addMessage(message) {
     li.innerText = message;
     ul.appendChild(li);
 }
+
 
 function handleMessageSubmit(event){
     event.preventDefault();
@@ -48,6 +49,7 @@ function handleMessageSubmit(event){
     input.value = ""
 }
 
+
 function handleNameSubmit(event) {
     event.preventDefault();
     const input = room.querySelector("#name input");
@@ -55,6 +57,7 @@ function handleNameSubmit(event) {
     socket.emit("nickname", input.value, roomName);
     input.value = ""
 }
+
 
 function showRoom() {
     welcome.hidden = true;
@@ -73,38 +76,27 @@ function showRoom() {
     console.log("event setting!")
 }
 
+
 function handleRoomSubmit(event) {
     event.preventDefault();
     const input = form.querySelector("input");
     roomName = input.value;
-    if (localStorage.getItem("token")) {
-        const msg = {
-            token: localStorage.getItem("token"),
-            roomName: roomName
-        };
-        console.log("msg: ",msg);
-        socket.emit("enterRoom", msg, showRoom);
-        socket.emit("initState", socket.id);
-        input.value = "";
-        showRoom();
+    if (!localStorage.getItem("token")) {
+        socket.emit("requestToken", roomName);
     }
-    else {
-        throw "No token in the localStorage"
-    }
+    socket.emit("enterRoom", roomName, showRoom);
+    socket.emit("initState", socket.id);
+    input.value = "";
 }
+
 
 socket.on("enterRoomwToken", (room) => {
     console.log("Reconnected with token.");
     roomName = room;
-    const msg = {
-        token: localStorage.getItem("token"),
-        roomName: roomName
-    };
-    socket.emit("enterRoom", msg, showRoom);
+    socket.emit("enterRoom", room, showRoom);
     socket.emit("initState", socket.id);
 });
 
-form.addEventListener("submit", handleRoomSubmit);
 
 socket.on("welcome",(newCount, user) => {
     const h3 = room.querySelector("h3");
@@ -123,13 +115,6 @@ socket.on("new_message", (a, newCount) => {
 });
 
 socket.on("room_change", (rooms) => {
-    // if(rooms.length === 0){
-    //     roomList.innerHTML = "";
-    //     return;
-    // }
-    if (localStorage.getItem("token") === null) {
-        return
-    }
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";
     rooms.forEach(room => {
@@ -164,9 +149,11 @@ function blockStateChange(targetFunction, timeOut=250){
     }, timeOut);  
 }
 
+
 function onPlayerReady() {
     isPlayerReady = true;
 }
+
 
 function onPlayerStateChange(event) {
     if (isStateChangeEvent && event.data != 3) {
@@ -178,6 +165,7 @@ function onPlayerStateChange(event) {
     }
 }
 
+
 function handleVideoUrlSubmit(event){
     event.preventDefault();
     const input = appPlayer.querySelector("#playNow");
@@ -188,6 +176,7 @@ function handleVideoUrlSubmit(event){
     console.log("video changed! - submit");
     input.value = "";
 }
+
 
 function listComments(videoComment) {
     const commentsUl = commentDiv.querySelector("ul");
@@ -211,6 +200,7 @@ function listComments(videoComment) {
     });
 }
 
+
 function setVideoTitle(data) {
     const videoTitle = document.getElementById("videoTitle");
     const videoSpan = videoTitle.querySelectorAll("span");
@@ -226,8 +216,8 @@ function setVideoTitle(data) {
     
     videoTitle.appendChild(videoTitleSpan);
     videoTitle.appendChild(videoChannelSpan);
-
 }
+
 
 function handlePlaylistSubmit(event) {
     event.preventDefault();
@@ -239,6 +229,7 @@ function handlePlaylistSubmit(event) {
     console.log("add playlist! - submit");
     input.value = "";
 }
+
 
 function handleSwitchChatPlaylist() {
     const radios = document.querySelectorAll("label[name='radio']");
@@ -257,6 +248,7 @@ function handleSwitchChatPlaylist() {
 	});
 };
 
+
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     sortableList.addEventListener("drop", (e) => {
@@ -269,6 +261,7 @@ function handleSortablePlaylist() {
 	});
 };
 
+
 function handleDeletePlaylist() {
     let idList = [];
     const sortableList = document.getElementById("sortable-list");
@@ -278,6 +271,7 @@ function handleDeletePlaylist() {
     console.log(idList);
     socket.emit("changePlaylist", idList, roomName);
 }
+
 
 function handleHomeSubmit() {
     // 1. initialize token in localStorage
@@ -293,6 +287,7 @@ function handleHomeSubmit() {
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 homeButton.addEventListener("click", handleHomeSubmit);
+form.addEventListener("submit", handleRoomSubmit);
 
 socket.on("videoUrlChange", (data, videoComment) => {
     //console.log("get Urlchange!")

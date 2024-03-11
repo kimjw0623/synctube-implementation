@@ -122,45 +122,39 @@ wsServer.on("connection", (socket) => { // socket connection
                 console.error('Token verification failed:', err);
                 return;
             }
-            console.log('Decoded payload:', decoded);
             if (tokenRoomDict[socket.handshake.query.token]) {
                 socket.emit("enterRoomwToken", tokenRoomDict[socket.handshake.query.token]);
             }
             else {
-                console.log("default room...")
-                socket.emit("enterRoomwToken", defaultRoom);
+                throw new Error("Unknown token!")
             }
-            // Enter room corresponding to the token
-        })
-    }
-    else { 
-        // Give token and nickname when enter room
-        const nickname = generateUsername("", 0, 15);
-        socket["nickname"] = nickname;
-        const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
-        socket["jwt"] = token;
-        tokenNicknameDict[token] = nickname;
-        wsServer.to(socket.id).emit('token', token);
+        });
     }
     wsServer.sockets.emit("room_change", publicRooms());
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
-    socket.on("enterRoom", (msg, done) => {
-        console.log("enterRoom: ", msg, done);
-        const roomName = msg.roomName
+    socket.on("requestToken", (roomName) => {
+        // Give token and nickname when enter room
+        const nickname = generateUsername("", 0, 15);
+        socket.nickname = nickname;
+        const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
+        socket.jwt = token;
+        tokenNicknameDict[token] = nickname;
+        tokenRoomDict[token] = roomName;
+        wsServer.to(socket.id).emit('issueToken', token);
+    });
+    socket.on("enterRoom", (roomName, done) => {
+        // Join room and emit 
         socket.join(roomName);
         if (typeof done === "function") {
             done();
         }
         else {
-            console.log("done is not a function!!!!!!!!!!")
+            throw new Error("done is not a function!!");
         }
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
         wsServer.sockets.emit("room_change", publicRooms());
-        console.log(`roomname: ${roomName}`);
-        console.log(msg.token);
-        tokenRoomDict[msg.token] = roomName;
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
@@ -171,7 +165,6 @@ wsServer.on("connection", (socket) => { // socket connection
     });
     socket.on("new_message", (msg, room, done) => {
         socket.to(room).emit("new_message",`${socket.nickname}: ${msg}`, countRoom(room))
-        console.log(msg)
         done();
     })
     socket.on("nickname", nickname => socket["nickname"] = nickname);
