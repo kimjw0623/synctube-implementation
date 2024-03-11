@@ -8,32 +8,9 @@ import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
 import * as utils from "./util/utils.js";
 
-const app = express();
-app.set("view engine", "pug");
-app.set("views", "./src/views");
-app.use("/public", express.static("./src/public"));
-app.get("/", (_, res) => res.render("home"));
-app.get("/test/", (_, res) => res.render("test", {
-    playlist: ["qwer","asdf"], // Make sure this is an array
-    chatMessages: ["qwer","asdf"] // Make sure this is an array
-}));
-
 dotenv.config();
 
-const secretKey = 'secretKey';
-const currentServerState = {
-    currentVideo: {},
-    playerState: -1,
-    playerTime: 0,
-    playerVolume: 20,
-    playlist: []
-}
-const roomList = [];
-const tokenNicknameDict = {}; // TODO: move to DB!
-const tokenRoomDict = {}; // TODO: move to DB!
-const defaultRoom = "abc";
-const handleListen = () => console.log(`Listening on http://localhost:3000`);
-
+const app = express();
 const httpServer = http.createServer(app);
 const wsServer = new Server(httpServer, {
     cors: {
@@ -42,6 +19,49 @@ const wsServer = new Server(httpServer, {
     },
 });
 
+// Application Settings
+app.set("view engine", "pug");
+app.set("views", "./src/views");
+app.use("/public", express.static("./src/public"));
+
+// Routes
+app.get("/", (_, res) => res.render("home"));
+app.get("/test/", (_, res) => res.render("test", {
+    playlist: ["qwer","asdf"],
+    chatMessages: ["qwer","asdf"]
+}));
+
+// Global server state
+const serverState = {
+    currentVideo: {},
+    playerState: -1,
+    playerTime: 0,
+    playerVolume: 20,
+    playlist: []
+};
+
+// In-memory data storage (should be replaced with DB for production)
+const tokenNicknameDict = {};
+const tokenRoomDict = {};
+
+const defaultRoom = "abc";
+const secretKey = process.env.SECRET_KEY || 'secretKey';
+
+async function initializeServer() {
+    const initVideo = "1EJcaxYMZzQ";
+    const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
+    await utils.insertVideoDB(initVideo);
+    let videoInfo = await utils.readVideoDB(initVideo);
+    serverState.currentVideo = parseVideoMetadata(videoInfo.metadata);
+    
+    if (initPlaylist.length != 0) {
+        initPlaylist.forEach(async videoId => {
+            await utils.insertVideoDB(videoId);
+            videoInfo = await utils.readVideoDB(videoId);
+            serverState.playlist.push(parseVideoMetadata(videoInfo.metadata));
+        });
+    }
+}
 
 function publicRooms(){
     const sids = wsServer.sockets.adapter.sids;
@@ -64,7 +84,7 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-function processResponse(response) {
+function parseVideoMetadata(response) {
     const id = response.items[0].id;
     const title = response.items[0].snippet.title;
     const thumbnailUrl = response.items[0].snippet.thumbnails.default.url;
@@ -77,7 +97,6 @@ function processResponse(response) {
         channelTitle: channelTitle,
         duration: utils.parseISODuration(duration, false)
     }
-    
     return result;
 }
 
@@ -91,31 +110,14 @@ function isVideoEnd(duration, currentTime) {
     }
 }
 
-async function initializeDev() {
-    const initVideo = "1EJcaxYMZzQ";
-    const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
-    await utils.insertVideoDB(initVideo);
-    let videoInfo = await utils.readVideoDB(initVideo);
-    currentServerState.currentVideo = processResponse(videoInfo.metadata);
-    
-    if (initPlaylist.length != 0) {
-        initPlaylist.forEach(async videoId => {
-            await utils.insertVideoDB(videoId);
-            videoInfo = await utils.readVideoDB(videoId);
-            currentServerState.playlist.push(processResponse(videoInfo.metadata));
-        });
-    }
-    
-}
-
-async function getMetadataFromId(data) {
+async function getMetadataFromVideoId(data) {
     const videoId = getYoutubeVideoId(data.videoId)
     await insertVideoDB(videoId);
     const videoInfo = await utils.readVideoDB(videoId);
-    return processResponse(videoInfo.metadata);
+    return parseVideoMetadata(videoInfo.metadata);
 }
 
-wsServer.on("connection", (socket) => { // socket connection
+function authAndJoinRoom(socket) {
     if (socket.handshake.query.token) {
         jwt.verify(socket.handshake.query.token, secretKey, (err, decoded) => {
             if (err) {
@@ -123,14 +125,17 @@ wsServer.on("connection", (socket) => { // socket connection
                 return;
             }
             if (tokenRoomDict[socket.handshake.query.token]) {
-                socket.emit("enterRoomwToken", tokenRoomDict[socket.handshake.query.token]);
+                socket.emit("enterRoomWithToken", tokenRoomDict[socket.handshake.query.token]);
             }
             else {
-                throw new Error("Unknown token!")
+                console.log("aaasss")
+                //throw new Error("Unknown token!")
             }
         });
     }
-    wsServer.sockets.emit("room_change", publicRooms());
+}
+
+function connectionSocketListeners(socket) {
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
@@ -154,13 +159,13 @@ wsServer.on("connection", (socket) => { // socket connection
             throw new Error("done is not a function!!");
         }
         wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
-        wsServer.sockets.emit("room_change", publicRooms());
+        wsServer.sockets.emit("roomChange", publicRooms());
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
     })
     socket.on("disconnect", () => {
-        wsServer.sockets.emit("room_change", publicRooms());
+        wsServer.sockets.emit("roomChange", publicRooms());
         console.log("exit!")
     });
     socket.on("new_message", (msg, room, done) => {
@@ -168,62 +173,74 @@ wsServer.on("connection", (socket) => { // socket connection
         done();
     })
     socket.on("nickname", nickname => socket["nickname"] = nickname);
-    // -----------------------------------------
+}
 
-    // init player
+function playerSocketListeners(socket) {
     socket.on("initState", async (socketId) => {
-        const videoInfo = await utils.readVideoDB(currentServerState.currentVideo.id);
-        wsServer.to(socketId).emit("initState", currentServerState, videoInfo.comment);
-        wsServer.to(socketId).emit("updatePlaylist", currentServerState.playlist);
+        const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
+        wsServer.to(socketId).emit("initState", serverState, videoInfo.comment);
+        wsServer.to(socketId).emit("updatePlaylist", serverState.playlist);
     });
     socket.on("stateChange", async (data) => {
-        currentServerState.playerState = data.playerState;
-        currentServerState.playerTime = data.currentTime;
-        if (isVideoEnd(currentServerState.currentVideo.duration,currentServerState.playerTime) ||
-            (data.playerState === 0 && currentServerState.playlist.length != 0)) { // video ends
-            currentServerState.currentVideo = currentServerState.playlist.shift();
-            const videoInfo = await utils.readVideoDB(currentServerState.currentVideo.id);
-            wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
-            wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist);
+        serverState.playerState = data.playerState;
+        serverState.playerTime = data.currentTime;
+        if (isVideoEnd(serverState.currentVideo.duration,serverState.playerTime) ||
+            (data.playerState === 0 && serverState.playlist.length != 0)) { // video ends
+            serverState.currentVideo = serverState.playlist.shift();
+            const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
+            wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
+            wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
         }
         else {wsServer.to(data.room).emit("stateChange", data);}
     });
     socket.on("syncTime", (room, currentTime) => {
         // update serverTime
-        currentServerState.playerTime = currentTime;
+        serverState.playerTime = currentTime;
         const data = {
             currentTime: currentTime,
-            playerState: currentServerState.playerState
+            playerState: serverState.playerState
         };
         wsServer.to(room).emit("SyncTime", data);
         console.log(`time: ${currentTime}`)
     });
     socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
-            currentServerState.currentVideo = await getMetadataFromId(data);
-            currentServerState.playerTime = 0;
+            serverState.currentVideo = await getMetadataFromVideoId(data);
+            serverState.playerTime = 0;
             // send to all members in room
-            wsServer.to(data.room).emit("videoUrlChange", currentServerState, videoInfo.comment);
+            wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
         }
     });
     socket.on("addPlaylist", async (data) => {
         if (data.videoId != "") {
-            currentServerState.playlist.push(await getMetadataFromId(data));
-            wsServer.to(data.room).emit("updatePlaylist", currentServerState.playlist)
+            serverState.playlist.push(await getMetadataFromVideoId(data));
+            wsServer.to(data.room).emit("updatePlaylist", serverState.playlist)
         }
-    })
+    });
     socket.on("changePlaylist", async (data, room) => {
         if (data.length !== 0) {
-            currentServerState.playlist = [];
-            const promises = data.map(videoId => readVideoDB(videoId));
+            serverState.playlist = [];
+            const promises = data.map(videoId => utils.readVideoDB(videoId));
             const videosInfo = await Promise.all(promises);
             videosInfo.forEach(videoInfo => {
-                currentServerState.playlist.push(processResponse(videoInfo.metadata));
+                serverState.playlist.push(parseVideoMetadata(videoInfo.metadata));
             });
-            wsServer.to(room).emit("updatePlaylist", currentServerState.playlist);
+            wsServer.to(room).emit("updatePlaylist", serverState.playlist);
+            console.log(serverState.playlist);
         }
-    })
+    });
+}
+
+wsServer.on("connection", (socket) => { // socket connection
+    authAndJoinRoom(socket);
+    wsServer.sockets.emit("roomChange", publicRooms());
+    connectionSocketListeners(socket);
+    playerSocketListeners(socket);
 });
 
-await initializeDev(); // should remove at production
-httpServer.listen(3000, handleListen);
+// Start the server
+const port = process.env.PORT || 3000;
+httpServer.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+    initializeServer().then(() => console.log("Server initialized"));
+});

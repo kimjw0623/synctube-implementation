@@ -14,7 +14,6 @@ const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
 
-let lastPlayerState = -1;
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
 let currentTime = 0;
@@ -25,19 +24,12 @@ appPlayer.style.display = "none";
 playlistChat.style.display = "none";
 room.hidden = true;
 
-socket.on('issueToken', (token) => {
-    localStorage.setItem('token', token);
-    console.log('Token saved: ', token);
-});
-
-
 function addMessage(message) {
     const ul = room.querySelector("ul");
     const li = document.createElement("li");
     li.innerText = message;
     ul.appendChild(li);
 }
-
 
 function handleMessageSubmit(event){
     event.preventDefault();
@@ -49,7 +41,6 @@ function handleMessageSubmit(event){
     input.value = ""
 }
 
-
 function handleNameSubmit(event) {
     event.preventDefault();
     const input = room.querySelector("#name input");
@@ -57,7 +48,6 @@ function handleNameSubmit(event) {
     socket.emit("nickname", input.value, roomName);
     input.value = ""
 }
-
 
 function showRoom() {
     welcome.hidden = true;
@@ -73,9 +63,7 @@ function showRoom() {
     document.getElementById("room").hidden = true;
     handleSwitchChatPlaylist();
     handleSortablePlaylist();
-    console.log("event setting!")
 }
-
 
 function handleRoomSubmit(event) {
     event.preventDefault();
@@ -89,20 +77,36 @@ function handleRoomSubmit(event) {
     input.value = "";
 }
 
+function handleHomeSubmit() {
+    localStorage.removeItem("token");
+    isStateChangeEvent = false;
+    player.stopVideo();
+    // UI
+    room.hidden = true;
+    document.getElementById("main").style.display = "none";
+    appPlayer.style.display = "none";
+    playlistChat.style.display = "none";
+    document.getElementById("welcome").hidden = false;
+}
 
-socket.on("enterRoomwToken", (room) => {
+socket.on('issueToken', (token) => {
+    localStorage.setItem('token', token);
+    console.log('Token saved: ', token);
+});
+
+socket.on("enterRoomWithToken", (room) => {
     console.log("Reconnected with token.");
     roomName = room;
     socket.emit("enterRoom", room, showRoom);
     socket.emit("initState", socket.id);
 });
 
-
 socket.on("welcome",(newCount, user) => {
     const h3 = room.querySelector("h3");
     //h3.innerText = `Room ${roomName}; Users ${newCount}`;
     addMessage(`${user} joined!`);
 });
+
 socket.on("bye", (newCount, user) => {
     const h3 = room.querySelector("h3");
     //h3.innerText = `Room ${roomName}; Users ${newCount}`;
@@ -114,7 +118,8 @@ socket.on("new_message", (a, newCount) => {
     addMessage(a)
 });
 
-socket.on("room_change", (rooms) => {
+socket.on("roomChange", (rooms) => {
+    console.log('roomchange');
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";
     rooms.forEach(room => {
@@ -125,7 +130,9 @@ socket.on("room_change", (rooms) => {
     })
 });
 
-// --------------------------------------- //
+
+
+// -------------player---------------- //
 
 function reportCurrentTime() {
     setInterval(() => {
@@ -140,20 +147,17 @@ function reportCurrentTime() {
 }
 
 // block onPlayerStateChange for {timeOut} ms
-function blockStateChange(targetFunction, timeOut=250){
+function blockStateChange(targetFunction, timeOut=200){
     isStateChangeEvent = false;
     targetFunction();
     setTimeout(function() {
         isStateChangeEvent = true;
-        console.log("now stateChange event enable!");
     }, timeOut);  
 }
-
 
 function onPlayerReady() {
     isPlayerReady = true;
 }
-
 
 function onPlayerStateChange(event) {
     if (isStateChangeEvent && event.data != 3) {
@@ -165,7 +169,6 @@ function onPlayerStateChange(event) {
     }
 }
 
-
 function handleVideoUrlSubmit(event){
     event.preventDefault();
     const input = appPlayer.querySelector("#playNow");
@@ -176,7 +179,6 @@ function handleVideoUrlSubmit(event){
     console.log("video changed! - submit");
     input.value = "";
 }
-
 
 function listComments(videoComment) {
     const commentsUl = commentDiv.querySelector("ul");
@@ -200,7 +202,6 @@ function listComments(videoComment) {
     });
 }
 
-
 function setVideoTitle(data) {
     const videoTitle = document.getElementById("videoTitle");
     const videoSpan = videoTitle.querySelectorAll("span");
@@ -218,7 +219,6 @@ function setVideoTitle(data) {
     videoTitle.appendChild(videoChannelSpan);
 }
 
-
 function handlePlaylistSubmit(event) {
     event.preventDefault();
     const input = document.getElementById("playNow");
@@ -229,7 +229,6 @@ function handlePlaylistSubmit(event) {
     console.log("add playlist! - submit");
     input.value = "";
 }
-
 
 function handleSwitchChatPlaylist() {
     const radios = document.querySelectorAll("label[name='radio']");
@@ -248,7 +247,6 @@ function handleSwitchChatPlaylist() {
 	});
 };
 
-
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     sortableList.addEventListener("drop", (e) => {
@@ -261,7 +259,6 @@ function handleSortablePlaylist() {
 	});
 };
 
-
 function handleDeletePlaylist() {
     let idList = [];
     const sortableList = document.getElementById("sortable-list");
@@ -270,18 +267,6 @@ function handleDeletePlaylist() {
     })
     console.log(idList);
     socket.emit("changePlaylist", idList, roomName);
-}
-
-
-function handleHomeSubmit() {
-    // 1. initialize token in localStorage
-    // 2. hide/reveal objects
-    localStorage.removeItem("token");
-    room.hidden = true;
-    document.getElementById("main").style.display = "none";
-    appPlayer.style.display = "none";
-    playlistChat.style.display = "none";
-    document.getElementById("welcome").hidden = false;
 }
 
 playButton.addEventListener("click", handleVideoUrlSubmit);
@@ -315,7 +300,7 @@ socket.on("initState", (data, videoComment) => {
                     } else if (data.playerState === YT.PlayerState.PAUSED) {
                         player.pauseVideo();
                     }
-                }, 100);
+                }, 50);
                 setVideoTitle(data);
                 console.log(data.playerTime);
                 
@@ -355,54 +340,61 @@ socket.on("SyncTime", data => {
     });
 });
 
+function createVideoListItem(videoItem) {
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+    
+    const img = document.createElement("img");
+    img.src = videoItem.thumbnailUrl;
+    img.alt = videoItem.id;
+    img.style.cssText = 'width:100px; height:auto; float:left;';
+
+    const titleSpan = document.createElement("span");
+    titleSpan.innerText = videoItem.title;
+    titleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:110px;';
+
+    const channelSpan = document.createElement("span");
+    channelSpan.innerText = videoItem.channelTitle;
+    channelSpan.style.cssText = 'margin-left:10px; float:left;';
+
+    const deleteButton = document.createElement("button");
+    deleteButton.innerText = 'Delete';
+    deleteButton.classList.add("material-symbols-outlined");
+    deleteButton.style.cssText = 'float:right;';
+    deleteButton.onclick = function() {
+        li.remove();
+        handleDeletePlaylist();
+    };
+
+    const durationSpan = document.createElement("span");
+    durationSpan.innerText = videoItem.duration;
+    durationSpan.style.cssText = 'display:block; margin-left:110px;';
+
+    li.appendChild(img);
+    li.appendChild(titleSpan);
+    li.appendChild(durationSpan);
+    li.appendChild(channelSpan);
+    li.appendChild(deleteButton);
+
+    return li
+}
+
 socket.on("updatePlaylist", (data) => {
     const playlistList = playlistForm.querySelector("ol");
     const sortableList = document.getElementById("sortableList");
     playlistList.remove();
+
     const newPlaylistList = document.createElement("ol");
     newPlaylistList.className = "list-group";
     newPlaylistList.id = "sortable-list";
-    playlistForm.insertBefore(newPlaylistList,sortableList);
-    data.forEach(videoItem => {
-        const li = document.createElement("li");
-        li.className = "list-group-item";
-        
-        const img = document.createElement("img");
-        img.src = videoItem.thumbnailUrl;
-        img.alt = videoItem.id;
-        img.style.cssText = 'width:100px; height:auto; float:left;';
-    
-        const titleSpan = document.createElement("span");
-        titleSpan.innerText = videoItem.title;
-        titleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:110px;';
-    
-        const channelSpan = document.createElement("span");
-        channelSpan.innerText = videoItem.channelTitle;
-        channelSpan.style.cssText = 'margin-left:10px; float:left;';
-    
-        const deleteButton = document.createElement("button");
-        deleteButton.innerText = 'Delete';
-        deleteButton.classList.add("material-symbols-outlined");
-        deleteButton.style.cssText = 'float:right;';
-        deleteButton.onclick = function() {
-            li.remove();
-            handleDeletePlaylist();
-        };
 
-        const durationSpan = document.createElement("span");
-        durationSpan.innerText = videoItem.duration;
-        durationSpan.style.cssText = 'display:block; margin-left:110px;';
-    
-        li.appendChild(img);
-        li.appendChild(titleSpan);
-        li.appendChild(durationSpan);
-        li.appendChild(channelSpan);
-        li.appendChild(deleteButton);
-        
-        newPlaylistList.appendChild(li);
+    data.forEach(videoItem => {
+        const videoListItem = createVideoListItem(videoItem);
+        newPlaylistList.appendChild(videoListItem);
     });
+    playlistForm.insertBefore(newPlaylistList, sortableList);
+    
     handleSortablePlaylist();
-    // important!!! eventlist has gone
     var sortable = new Sortable(document.getElementById('sortable-list'), {
         animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
         ghostClass: 'sortable-ghost' // Class name for the drop placeholder
