@@ -126,9 +126,7 @@ socket.on("roomChange", (rooms) => {
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";
     rooms.forEach(room => {
-        const roomListSpan = document.createElement("span");
-        roomListSpan.innerText = room;
-        roomListSpan.style.cssText = 'font-weight:bold; display:block;';
+        const roomListSpan = createElement("span", room, "font-weight:bold; display:block;");
         roomList.appendChild(roomListSpan);
     })
 });
@@ -190,19 +188,15 @@ function listComments(videoComment) {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
-        const commentUserSpan = document.createElement("span");
-        commentUserSpan.innerText = author;
-        commentUserSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px;';
-        const commentTextSpan = document.createElement("span");
-        commentTextSpan.innerText = comment;
-        commentTextSpan.style.cssText = 'display:block; margin-left:10px;';
+        
+        const commentUserSpan = createElement("span", author, "font-weight:bold; display:block; margin-left:10px;");
+        const commentTextSpan = createElement("span", comment, "display:block; margin-left:10px;");
+        
         li.appendChild(commentUserSpan);
         li.appendChild(commentTextSpan);
         newCommentsUl.appendChild(li);
     });
 }
-
-
 
 function setVideoTitle(data) {
     // Remove previous video description
@@ -352,26 +346,15 @@ function createVideoListItem(videoItem) {
     img.alt = videoItem.id;
     img.style.cssText = 'width:100px; height:auto; float:left;';
 
-    const titleSpan = document.createElement("span");
-    titleSpan.innerText = videoItem.title;
-    titleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:110px;';
-
-    const channelSpan = document.createElement("span");
-    channelSpan.innerText = videoItem.channelTitle;
-    channelSpan.style.cssText = 'margin-left:10px; float:left;';
-
-    const deleteButton = document.createElement("button");
-    deleteButton.innerText = 'Delete';
+    const titleSpan = createElement("span", videoItem.title, "font-weight:bold; display:block; margin-left:110px;");
+    const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px; float:left;");
+    const durationSpan = createElement("span", videoItem.duration, "display:block; margin-left:110px;");
+    const deleteButton = createElement("button", "Delete", "float:right;");
     deleteButton.classList.add("material-symbols-outlined");
-    deleteButton.style.cssText = 'float:right;';
     deleteButton.onclick = function() {
         li.remove();
         handleDeletePlaylist();
     };
-
-    const durationSpan = document.createElement("span");
-    durationSpan.innerText = videoItem.duration;
-    durationSpan.style.cssText = 'display:block; margin-left:110px;';
 
     li.appendChild(img);
     li.appendChild(titleSpan);
@@ -379,7 +362,7 @@ function createVideoListItem(videoItem) {
     li.appendChild(channelSpan);
     li.appendChild(deleteButton);
 
-    return li
+    return li;
 }
 
 socket.on("updatePlaylist", (data) => {

@@ -41,10 +41,10 @@ html(lang="en")
                         script(src="/public/js/player.js")
                     .row#videoTitle
                     .row#videoChannel
-                    .row.my-3
-                        .col-flex
-                            .comment-container(id="comment")
-                                ul
+                    //- .row.my-1(style="margin-left:1px;")
+                    //-     span Comments
+                    .row.comment-container.my-1(id="comment")
+                        ul
                 .col-lg-4#playlistChat
                     .row.mx-1
                         div(class="btn-group btn-group-toggle center",data-toggle="buttons")
@@ -74,7 +74,9 @@ html(lang="en")
                                 .chat-input-container
                                     form#chatForm
                                         input.form-control(type='text', placeholder='Type a message...', required)
-                                        button.btn.btn-primary(type='submit') Send
+                                        button.btn.btn-outline-light(type='submit',class="round") Send
+                    //- .row.mx-1
+                    //-     h4 Users
         
                 
         script(src="/socket.io/socket.io.js")

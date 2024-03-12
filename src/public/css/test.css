@@ -4,6 +4,10 @@
     box-sizing: border-box;
 }
 
+ul, ol {
+    list-style-type: none; /* 리스트의 스타일을 없애서 앞에 붙는 점을 제거 */
+}
+
 body, html {
     height: 100%;
     /* font-family: 'Arial', sans-serif; */
@@ -95,13 +99,19 @@ body, html {
 .list-group-item {
     background-color: #222831; /* Light blue for footer */
     color: #ffffff;
+    /* height: 100px; */
+}
+
+.list-group {
+    height: 450px;
+    overflow-y: auto;
 }
 
 input[placeholder="Room name"] {
-    margin: 5px 0; /* 상하 마진 추가 */
-    padding: 5px; /* 패딩 증가 */
-    font-size: 15px; /* 글꼴 크기 증가 */
-    width: 80%; /* 폼 내부 요소 너비 */
+    margin: 5px 0;
+    padding: 5px;
+    font-size: 15px;
+    width: 80%;
 }
 
 .start-container {
@@ -120,14 +130,16 @@ input[placeholder="Room name"] {
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 400px;
+    height: 450px;
     width: 450px;
     background-color: #222831; /* White background for chat container */
 }
 
-/* .comment-container {
-    background-color: #1a1a1a;
-} */
+.comment-container {
+    height: 300px;
+    overflow-y: auto;
+    background-color: #222831;
+}
 
 .sortable-ghost {
     background-color: #cfd3d6;
