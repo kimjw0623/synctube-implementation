@@ -38,16 +38,15 @@ html(lang="en")
             .row.flex-grow-1#main
                 .col-lg-7
                     .row#player
-                        .col-flex
-                            script(src="/public/js/player.js")
-                    .row 
-                        .col-flex#videoTitle
+                        script(src="/public/js/player.js")
+                    .row#videoTitle
+                    .row#videoChannel
                     .row.my-3
                         .col-flex
                             .comment-container(id="comment")
                                 ul
                 .col-lg-4#playlistChat
-                    .row
+                    .row.mx-1
                         div(class="btn-group btn-group-toggle center",data-toggle="buttons")
                             |    <label class="btn btn-secondary active" name="radio">
                             |        <input type="radio" name="options" id="option1" autocomplete="off" checked> Playlist
@@ -55,7 +54,7 @@ html(lang="en")
                             |    <label class="btn btn-secondary" name="radio">
                             |        <input type="radio" name="options" id="option2" autocomplete="off"> Chat
                             |    </label>
-                    .row
+                    .row.mx-1
                         .playlist-chat-container
                             .playlist-container.p-0#playlistForm
                                 ol#sortable-list.list-group

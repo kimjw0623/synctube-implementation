@@ -112,7 +112,7 @@ function isVideoEnd(duration, currentTime) {
 
 async function getMetadataFromVideoId(data) {
     const videoId = getYoutubeVideoId(data.videoId)
-    await insertVideoDB(videoId);
+    await utils.insertVideoDB(videoId);
     const videoInfo = await utils.readVideoDB(videoId);
     return parseVideoMetadata(videoInfo.metadata);
 }
@@ -172,7 +172,7 @@ function connectionSocketListeners(socket) {
         socket.to(room).emit("new_message",`${socket.nickname}: ${msg}`, countRoom(room))
         done();
     })
-    socket.on("nickname", nickname => socket["nickname"] = nickname);
+    //socket.on("nickname", nickname => socket["nickname"] = nickname);
 }
 
 function playerSocketListeners(socket) {
@@ -208,6 +208,7 @@ function playerSocketListeners(socket) {
             serverState.currentVideo = await getMetadataFromVideoId(data);
             serverState.playerTime = 0;
             // send to all members in room
+            const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
             wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
         }
     });

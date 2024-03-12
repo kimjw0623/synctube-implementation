@@ -4,17 +4,30 @@ tag.src = "https://www.youtube.com/iframe_api/";
 let firstScriptTag = document.getElementsByTagName("script")[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-// 3. This function creates an <iframe> (and YouTube player)
-//    after the API code downloads.
 let player;
+let playerElement = document.querySelector('.col-lg-7');
+let playerWidth = playerElement.offsetWidth;
 function onYouTubeIframeAPIReady() {
     player = new YT.Player("player", {
-        height: "450",
-        width: "750",
+        height: (playerWidth * 9) / 16,
+        width: playerWidth,
         videoId: "M7lc1UVf-VE",
         events: {
             "onReady": onPlayerReady,
             "onStateChange": onPlayerStateChange
         }
     });
+}
+
+window.addEventListener('resize', function() {
+    updatePlayerSize();
+});
+
+function updatePlayerSize() {
+    playerElement = document.querySelector('.col-lg-7');
+    playerWidth = playerElement.offsetWidth;
+
+    if (player && player.setSize) {
+        player.setSize(playerWidth, (playerWidth * 9) / 16);
+    }
 }

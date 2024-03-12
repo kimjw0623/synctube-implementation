@@ -24,6 +24,13 @@ appPlayer.style.display = "none";
 playlistChat.style.display = "none";
 room.hidden = true;
 
+function createElement(type, text, style) {
+    const newElement = document.createElement(type);
+    newElement.innerText = text;
+    newElement.style.cssText = style;
+    return newElement;
+}
+
 function addMessage(message) {
     const ul = room.querySelector("ul");
     const li = document.createElement("li");
@@ -52,7 +59,6 @@ function handleNameSubmit(event) {
 function showRoom() {
     welcome.hidden = true;
     room.hidden = false;
-    console.log(socket);
     const h3 = room.querySelector("h3");
     //h3.innerText = `Room ${roomName}`;
     //const msgForm = room.querySelector("#msg");
@@ -91,7 +97,6 @@ function handleHomeSubmit() {
 
 socket.on('issueToken', (token) => {
     localStorage.setItem('token', token);
-    console.log('Token saved: ', token);
 });
 
 socket.on("enterRoomWithToken", (room) => {
@@ -114,12 +119,10 @@ socket.on("bye", (newCount, user) => {
 });
 
 socket.on("new_message", (a, newCount) => {
-    console.log(a);
     addMessage(a)
 });
 
 socket.on("roomChange", (rooms) => {
-    console.log('roomchange');
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";
     rooms.forEach(room => {
@@ -130,9 +133,11 @@ socket.on("roomChange", (rooms) => {
     })
 });
 
-
-
 // -------------player---------------- //
+
+function onPlayerReady() {
+    isPlayerReady = true;
+}
 
 function reportCurrentTime() {
     setInterval(() => {
@@ -153,10 +158,6 @@ function blockStateChange(targetFunction, timeOut=200){
     setTimeout(function() {
         isStateChangeEvent = true;
     }, timeOut);  
-}
-
-function onPlayerReady() {
-    isPlayerReady = true;
 }
 
 function onPlayerStateChange(event) {
@@ -185,7 +186,6 @@ function listComments(videoComment) {
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
     commentDiv.appendChild(newCommentsUl);
-    console.log(`comment: ${videoComment}`);
     videoComment.items.forEach(commentItem => {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
@@ -202,21 +202,29 @@ function listComments(videoComment) {
     });
 }
 
+
+
 function setVideoTitle(data) {
+    // Remove previous video description
     const videoTitle = document.getElementById("videoTitle");
-    const videoSpan = videoTitle.querySelectorAll("span");
-    videoSpan.forEach(span => {
-        span.remove()
+    const videoTitleDiv = videoTitle.querySelectorAll("div");
+    videoTitleDiv.forEach(span => {
+        span.remove();
     });
-    const videoTitleSpan = document.createElement("span");
-    videoTitleSpan.innerText = data.currentVideo.title;
-    videoTitleSpan.style.cssText = 'font-weight:bold; display:block; margin-left:10px; font-size: 20px';
-    const videoChannelSpan = document.createElement("span");
-    videoChannelSpan.innerText = data.currentVideo.channelTitle;
-    videoChannelSpan.style.cssText = 'display:block; margin-left:10px; font-size: 12px';
+    const videoChannel = document.getElementById("videoChannel");
+    const videoChannelDiv = videoChannel.querySelectorAll("div");
+    videoChannelDiv.forEach(span => {
+        span.remove();
+    });
+    
+    // Append current video description
+    const videoTitleSpan = createElement("div", data.currentVideo.title, "font-weight:bold; margin-left:10px; font-size: 20px");
+    const videoChannelSpan = createElement("div", data.currentVideo.channelTitle, "display:block; margin-left:10px; font-size: 12px");
+    const roomNameSpan = createElement("div", `Room ${roomName}`, "font-weight:bold; margin-left: auto; font-size: 20px");
     
     videoTitle.appendChild(videoTitleSpan);
-    videoTitle.appendChild(videoChannelSpan);
+    videoTitle.appendChild(roomNameSpan);
+    videoChannel.appendChild(videoChannelSpan);
 }
 
 function handlePlaylistSubmit(event) {
@@ -254,7 +262,6 @@ function handleSortablePlaylist() {
         sortableList.querySelectorAll("li").forEach((id) => {
             idList.push(id.querySelector("img").alt);
         })
-        console.log(`Current playlist: ${idList}`);
         socket.emit("changePlaylist", idList, roomName);
 	});
 };
@@ -265,7 +272,6 @@ function handleDeletePlaylist() {
     sortableList.querySelectorAll("li").forEach((id) => {
         idList.push(id.querySelector("img").alt);
     })
-    console.log(idList);
     socket.emit("changePlaylist", idList, roomName);
 }
 
@@ -275,7 +281,6 @@ homeButton.addEventListener("click", handleHomeSubmit);
 form.addEventListener("submit", handleRoomSubmit);
 
 socket.on("videoUrlChange", (data, videoComment) => {
-    //console.log("get Urlchange!")
     blockStateChange(function () {
         currentTime = 0;
         listComments(videoComment);
@@ -301,14 +306,12 @@ socket.on("initState", (data, videoComment) => {
                         player.pauseVideo();
                     }
                 }, 50);
-                setVideoTitle(data);
-                console.log(data.playerTime);
-                
             });
             document.getElementById("main").style.display = "";
             appPlayer.style.display = "";
             playlistChat.style.display = "";
             reportCurrentTime();
+            setVideoTitle(data);
             console.log("init done!");
         }
     }, 100);

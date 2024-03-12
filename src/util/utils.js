@@ -104,21 +104,3 @@ export async function readVideoDB(videoId) {
         return { comment: undefined, metadata: undefined }
     }
 }
-
-// async function initializeDev() {
-//     const initVideo = "1EJcaxYMZzQ";
-//     const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
-
-//     await insertVideoDB(initVideo);
-//     let videoInfo = await readVideoDB(initVideo);
-//     currentServerState.currentVideo = processResponse(videoInfo.metadata);
-    
-//     if (initPlaylist.length != 0) {
-//         initPlaylist.forEach(async videoId => {
-//             await insertVideoDB(videoId);
-//             videoInfo = await readVideoDB(videoId);
-//             currentServerState.playlist.push(processResponse(videoInfo.metadata));
-//         });
-//     }
-    
-// }
