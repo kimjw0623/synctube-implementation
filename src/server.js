@@ -43,6 +43,9 @@ const serverState = {
 // In-memory data storage (should be replaced with DB for production)
 const tokenNicknameDict = {};
 const tokenRoomDict = {};
+const roomMessage = {}; // TODO: move to DB
+// {roomName:[{nickname:nickname,content:content}]}
+
 
 const defaultRoom = "abc";
 const secretKey = process.env.SECRET_KEY || 'secretKey';
@@ -118,18 +121,21 @@ async function getMetadataFromVideoId(data) {
 }
 
 function authAndJoinRoom(socket) {
-    if (socket.handshake.query.token) {
-        jwt.verify(socket.handshake.query.token, secretKey, (err, decoded) => {
+    const token = socket.handshake.query.token
+    if (token) {
+        const roomName = tokenRoomDict[token]
+        jwt.verify(token, secretKey, (err, decoded) => {
             if (err) {
                 console.error('Token verification failed:', err);
                 return;
             }
-            if (tokenRoomDict[socket.handshake.query.token]) {
-                socket.emit("enterRoomWithToken", tokenRoomDict[socket.handshake.query.token]);
+            if (roomName) {
+                socket.nickname = tokenNicknameDict[token];
+                socket.emit("enterRoomWithToken", roomName, tokenNicknameDict[token], roomMessage[roomName]);
             }
             else {
-                console.log("aaasss")
-                //throw new Error("Unknown token!")
+                console.log("unknown token!");
+                // throw new Error("Unknown token!");
             }
         });
     }
@@ -147,7 +153,7 @@ function connectionSocketListeners(socket) {
         socket.jwt = token;
         tokenNicknameDict[token] = nickname;
         tokenRoomDict[token] = roomName;
-        wsServer.to(socket.id).emit('issueToken', token);
+        wsServer.to(socket.id).emit('issueToken', token, nickname);
     });
     socket.on("enterRoom", (roomName, done) => {
         // Join room and emit 
@@ -158,7 +164,12 @@ function connectionSocketListeners(socket) {
         else {
             throw new Error("done is not a function!!");
         }
-        wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname);
+        console.log("rooms:",Object.keys(roomMessage))
+        if (!(roomName in roomMessage)) {
+            console.log("init room", roomName);
+            roomMessage[roomName] = [];
+        }
+        wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname, roomMessage[roomName]);
         wsServer.sockets.emit("roomChange", publicRooms());
     });
     socket.on("disconnecting", () => {
@@ -169,6 +180,13 @@ function connectionSocketListeners(socket) {
         console.log("exit!")
     });
     socket.on("new_message", (msg, room, done) => {
+        const nickname = socket.nickname
+        const messageData = {
+            "nickname": nickname,
+            "content": msg
+        }
+        roomMessage[room].push(messageData);
+        console.log(room, roomMessage);
         socket.to(room).emit("new_message",`${socket.nickname}: ${msg}`, countRoom(room))
         done();
     })
