@@ -1,6 +1,6 @@
 let token = localStorage.getItem('token');
 let query = token ? { query: `token=${token}` } : {};
-let socket = io.connect('http://localhost:3000', query);
+let socket = io.connect('', query);
 let roomName = 1;
 
 const appPlayer = document.getElementById("videoUrl");
@@ -13,11 +13,14 @@ const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
+const clientDelay = 0.5;
 
 let isStateChangeEvent = false;
 let lastReportedTime = 0;
 let currentTime = 0;
 let isPlayerReady = false;
+
+let lastPlayerState = -1
 
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
@@ -159,13 +162,16 @@ function blockStateChange(targetFunction, timeOut=200){
 }
 
 function onPlayerStateChange(event) {
-    if (isStateChangeEvent && event.data != 3) {
+    console.log(`${event.data}`)
+    if (isStateChangeEvent && event.data !== YT.PlayerState.BUFFERING) {  
+        console.log(`Emit change!: ${event.data}`)
         socket.emit("stateChange", {
             room: roomName,
             playerState: event.data,
             currentTime: player.getCurrentTime(),
         });
     }
+    lastPlayerState = event.data;
 }
 
 function handleVideoUrlSubmit(event){
@@ -314,8 +320,9 @@ socket.on("initState", (data, videoComment) => {
 socket.on("stateChange", data => {
     const serverTime = data.currentTime;
     const serverStatus = data.playerState;
+    console.log("get stateChange!", serverStatus);
     blockStateChange(function () {
-        if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
+        if (Math.abs(serverTime - player.getCurrentTime()) > clientDelay) {
             player.seekTo(serverTime, true);
         }
         if (serverStatus === YT.PlayerState.PLAYING) {
@@ -324,17 +331,24 @@ socket.on("stateChange", data => {
         else if (serverStatus === YT.PlayerState.PAUSED) {
             player.pauseVideo();
         }
-    });
+    },10);
 });
 
 socket.on("SyncTime", data => {
     const serverTime = data.currentTime;
+    const serverStatus = data.playerState;
     console.log(`get ${serverTime}`);
     blockStateChange(function () {
-        if (Math.abs(serverTime - player.getCurrentTime()) > 0.5) {
+        if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
             player.seekTo(serverTime, true);
         }
-    });
+        // if (serverStatus === YT.PlayerState.PLAYING) {
+        //     player.playVideo();
+        // }
+        // else if (serverStatus === YT.PlayerState.PAUSED) {
+        //     player.pauseVideo();
+        // }
+    },10);
 });
 
 function createVideoListItem(videoItem) {

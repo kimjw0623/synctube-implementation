@@ -137,7 +137,7 @@ function authAndJoinRoom(socket) {
 
 function connectionSocketListeners(socket) {
     socket.onAny((event) => {
-        console.log(`socket Event: ${event}`);
+        //console.log(`socket Event: ${event}`);
     });
     socket.on("requestToken", (roomName) => {
         // Give token and nickname when enter room
@@ -182,16 +182,20 @@ function playerSocketListeners(socket) {
         wsServer.to(socketId).emit("updatePlaylist", serverState.playlist);
     });
     socket.on("stateChange", async (data) => {
-        serverState.playerState = data.playerState;
         serverState.playerTime = data.currentTime;
         if (isVideoEnd(serverState.currentVideo.duration,serverState.playerTime) ||
             (data.playerState === 0 && serverState.playlist.length != 0)) { // video ends
+            serverState.playerState = data.playerState;
             serverState.currentVideo = serverState.playlist.shift();
             const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
             wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
             wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
         }
-        else {wsServer.to(data.room).emit("stateChange", data);}
+        else {// if (serverState.playerState !== data.playerState){
+            wsServer.to(data.room).emit("stateChange", data); // Include emitter
+            serverState.playerState = data.playerState;
+            console.log(data.playerState, socket.id);
+        }
     });
     socket.on("syncTime", (room, currentTime) => {
         // update serverTime
@@ -201,7 +205,7 @@ function playerSocketListeners(socket) {
             playerState: serverState.playerState
         };
         wsServer.to(room).emit("SyncTime", data);
-        console.log(`time: ${currentTime}`)
+        //console.log(`time: ${currentTime}`)
     });
     socket.on("videoUrlChange", async (data) => {
         if (data.videoId != "") {
@@ -241,7 +245,8 @@ wsServer.on("connection", (socket) => { // socket connection
 
 // Start the server
 const port = process.env.PORT || 3000;
-httpServer.listen(port, () => {
+const ipAddr = process.env.IP_ADDR || "0.0.0.0";
+httpServer.listen(port, ipAddr, () => {
     console.log(`Server listening on http://localhost:${port}`);
     initializeServer().then(() => console.log("Server initialized"));
 });
