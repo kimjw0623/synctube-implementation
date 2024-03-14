@@ -6,13 +6,23 @@ mongoose.connect('mongodb://localhost:27017/videos', {
 })
     .then(() => console.log('MongoDB connect.'))
     .catch(err => console.error('MongoDB failed.', err));
+    
 const Schema = mongoose.Schema;
-const userSchema = new Schema({
+const videoSchema = new Schema({
     videoId: { type: String, required: true, unique: true },
     comment: { type: "Mixed", default: {} },
     metadata: { type: "Mixed", default: {} },
 });
-const videoDB = mongoose.model('Video', userSchema);
+const chatSchema = new Schema({
+    roomName: { type: String, required: true, unique: true },
+    chats: { type: "Mixed", default: [] },
+});
+const userSchema = new Schema({
+    token : { type: String, required: true, unique: true },
+    userName: { type: "String", default: "default" },
+});
+const videoDB = mongoose.model('Video', videoSchema);
+
 
 export function timeStringToSeconds(timeString) {
     var timePattern = /^(\d+):?(\d+)?:?(\d+)?$/;

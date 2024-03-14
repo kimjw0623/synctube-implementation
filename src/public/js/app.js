@@ -12,6 +12,7 @@ const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
+const userList = document.getElementById("userList");
 
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
@@ -23,6 +24,17 @@ function createElement(type, text, style) {
     newElement.innerText = text;
     newElement.style.cssText = style;
     return newElement;
+}
+
+function loadUserList(data) {
+    const oldUsers = userList.querySelectorAll("li");
+    oldUsers.forEach(user => {
+        user.remove();
+    });
+    data.forEach(user => {
+        const li = createElement("li", user, "font-size: 15px");
+        userList.appendChild(li);
+    });
 }
 
 function addMessage(message) {
@@ -37,7 +49,7 @@ function loadMessage(messages) {
     const oldMessages = ul.querySelectorAll("li");
     oldMessages.forEach(msg => {
         msg.remove();
-    })
+    });
     messages.forEach(data => {
         const li = document.createElement("li");
         if (data.nickname === nickname) {
@@ -94,6 +106,7 @@ function handleRoomSubmit(event) {
 }
 
 function handleHomeSubmit() {
+    socket.disconnect(); // Exit room
     localStorage.removeItem("token");
     isStateChangeEvent = false;
     player.stopVideo();
@@ -116,20 +129,20 @@ socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
     nickname = tokenNickname;
     socket.emit("enterRoom", room, showRoom);
     socket.emit("initState", socket.id);
-    loadMessage(roomMessage);
+    //loadMessage(roomMessage);
 });
 
-socket.on("welcome",(newCount, user, messages) => {
+socket.on("welcome",(users, user, messages) => {
     const h3 = room.querySelector("h3");
     loadMessage(messages);
-    //h3.innerText = `Room ${roomName}; Users ${newCount}`;
-    addMessage(`${user} joined!`);
+    loadUserList(users);
+    //addMessage(`${user} joined!`);
 });
 
-socket.on("bye", (newCount, user) => {
+socket.on("bye", (users, user) => {
     const h3 = room.querySelector("h3");
-    //h3.innerText = `Room ${roomName}; Users ${newCount}`;
-    addMessage(`${user} Bye!`);
+    loadUserList(users);
+    //addMessage(`${user} Bye!`);
 });
 
 socket.on("new_message", (a, newCount) => {

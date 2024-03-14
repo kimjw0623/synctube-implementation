@@ -34,7 +34,7 @@ html(lang="en")
                             button.btn.btn-outline-light(id="playButton",type='button',class="round") Play now
                             button.btn.btn-outline-light(id="addButton",type='button',class="round") Add list
                     .col.head-right
-                        button.btn.btn-outline-light(id="home",type='submit',class="round") Home
+                        button.btn.btn-outline-light(id="home",type='submit',class="round") Leave Room
             .row.flex-grow-1#main
                 .col-lg-7
                     .row#player
@@ -75,8 +75,10 @@ html(lang="en")
                                     form#chatForm
                                         input.form-control(type='text', placeholder='Type a message...', required)
                                         button.btn.btn-outline-light(type='submit',class="round") Send
-                    //- .row.mx-1
-                    //-     h4 Users
+                    .row.mx-1
+                        span(style='float:center; font-weight:bold; font-size: 20px') Users
+                    .row.mx-1
+                        ul#userList
         
                 
         script(src="/socket.io/socket.io.js")

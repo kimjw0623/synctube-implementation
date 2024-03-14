@@ -45,7 +45,8 @@ const tokenNicknameDict = {};
 const tokenRoomDict = {};
 const roomMessage = {}; // TODO: move to DB
 // {roomName:[{nickname:nickname,content:content}]}
-
+const roomUser = {};
+// {roomName:[nickname]}
 
 const defaultRoom = "abc";
 const secretKey = process.env.SECRET_KEY || 'secretKey';
@@ -156,24 +157,31 @@ function connectionSocketListeners(socket) {
         wsServer.to(socket.id).emit('issueToken', token, nickname);
     });
     socket.on("enterRoom", (roomName, done) => {
+        socket.roomName = roomName;
         // Join room and emit 
         socket.join(roomName);
-        if (typeof done === "function") {
-            done();
-        }
-        else {
-            throw new Error("done is not a function!!");
-        }
-        console.log("rooms:",Object.keys(roomMessage))
+        done();
         if (!(roomName in roomMessage)) {
-            console.log("init room", roomName);
+            console.log("First Message!", roomName);
             roomMessage[roomName] = [];
         }
-        wsServer.to(roomName).emit("welcome", countRoom(roomName), socket.nickname, roomMessage[roomName]);
+        if (!(roomName in roomUser)) {
+            console.log("First user!", roomName);
+            roomUser[roomName] = [socket.nickname];
+        }
+        else {
+            roomUser[roomName].push(socket.nickname);
+        }
+        wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
         wsServer.sockets.emit("roomChange", publicRooms());
     });
     socket.on("disconnecting", () => {
-        socket.rooms.forEach(room => socket.to(room).emit("bye", countRoom(room)-1, socket.nickname));
+        const roomName = socket.roomName;
+        if (roomUser[roomName]) {
+            const idx = roomUser[roomName].indexOf(socket.nickname);
+            if (idx > -1) roomUser[roomName].splice(idx, 1);
+            socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
+        }
     })
     socket.on("disconnect", () => {
         wsServer.sockets.emit("roomChange", publicRooms());
