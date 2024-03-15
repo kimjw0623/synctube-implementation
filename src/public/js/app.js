@@ -100,8 +100,8 @@ function handleRoomSubmit(event) {
     if (!localStorage.getItem("token")) {
         socket.emit("requestToken", roomName);
     }
-    socket.emit("enterRoom", roomName, showRoom);
-    socket.emit("initState", socket.id);
+    socket.emit("enterRoom", roomName, socket.id, showRoom);
+    //socket.emit("initState", socket.id);
     input.value = "";
 }
 
@@ -116,6 +116,9 @@ function handleHomeSubmit() {
     appPlayer.style.display = "none";
     playlistChat.style.display = "none";
     document.getElementById("welcome").hidden = false;
+    let token = localStorage.getItem('token');
+    let query = token ? { query: `token=${token}` } : {};
+    socket = io.connect('', query);
 }
 
 socket.on('issueToken', (token, tokenNickname) => {
@@ -127,8 +130,8 @@ socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
     console.log("Reconnected with token.");
     roomName = room;
     nickname = tokenNickname;
-    socket.emit("enterRoom", room, showRoom);
-    socket.emit("initState", socket.id);
+    socket.emit("enterRoom", room, socket.id, showRoom);
+    //socket.emit("initState", socket.id);
     //loadMessage(roomMessage);
 });
 
