@@ -106,7 +106,8 @@ function handleRoomSubmit(event) {
 }
 
 function handleHomeSubmit() {
-    socket.disconnect(); // Exit room
+    // Exit room only (maintain socket Object; only available at server)
+    socket.emit('leaveRoom', roomName); 
     localStorage.removeItem("token");
     isStateChangeEvent = false;
     player.stopVideo();
@@ -116,9 +117,6 @@ function handleHomeSubmit() {
     appPlayer.style.display = "none";
     playlistChat.style.display = "none";
     document.getElementById("welcome").hidden = false;
-    let token = localStorage.getItem('token');
-    let query = token ? { query: `token=${token}` } : {};
-    socket = io.connect('', query);
 }
 
 socket.on('issueToken', (token, tokenNickname) => {

@@ -86,6 +86,15 @@ function countRoom(roomName){
     return wsServer.sockets.adapter.rooms.get(roomName).size;
 }
 
+function removeUserFromList(roomUserList, nickname) {
+    // remove user from userList
+    if (roomUserList) {
+        const idx = roomUserList.indexOf(nickname);
+        if (idx > -1) roomUserList.splice(idx, 1);
+    }
+    return roomUserList
+}
+
 function getYoutubeVideoId(url) {
     var searchParams = new URLSearchParams(new URL(url).search);
     return searchParams.get("v");
@@ -147,7 +156,7 @@ function authAndJoinRoom(socket) {
 
 function connectionSocketListeners(socket) {
     socket.onAny((event) => {
-        //console.log(`socket Event: ${event}`);
+        console.log(`socket Event: ${event}`);
     });
     socket.on("requestToken", (roomName) => {
         // Give token and nickname when enter room
@@ -195,15 +204,19 @@ function connectionSocketListeners(socket) {
     });
     socket.on("disconnecting", () => {
         const roomName = socket.roomName;
-        if (roomUser[roomName]) {
-            const idx = roomUser[roomName].indexOf(socket.nickname);
-            if (idx > -1) roomUser[roomName].splice(idx, 1);
-            socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
-        }
+        roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
+        socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("disconnect", () => {
         wsServer.sockets.emit("roomChange", publicRooms());
         console.log("exit!")
+    });
+    socket.on("leaveRoom", (roomName) => {
+        socket.leave(roomName, () => {
+            console.log(`${socket.id} has left the room ${roomName}`);
+        });
+        roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
+        socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("new_message", (msg, room, done) => {
         const nickname = socket.nickname
@@ -238,14 +251,12 @@ function playerSocketListeners(socket) {
         else {// if (serverState.playerState !== data.playerState){
             wsServer.to(data.room).emit("stateChange", data); // Include emitter
             serverState.playerState = data.playerState;
-            console.log(data.playerState, socket.id);
         }
     });
     socket.on("syncTime", (room, currentTime) => {
         // update serverTime
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
-        console.log(serverState);
         serverState.playerTime = currentTime;
         const data = {
             currentTime: currentTime,
