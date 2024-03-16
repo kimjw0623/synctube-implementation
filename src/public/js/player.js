@@ -3,6 +3,7 @@ let isStateChangeEvent = false;
 let lastReportedTime = 0;
 let currentTime = 0;
 let isPlayerReady = false;
+let isSyncTime = false;
 
 let lastPlayerState = -1
 const clientDelay = 0.5;
@@ -38,7 +39,7 @@ function updatePlayerSize() {
 function reportCurrentTime() {
     setInterval(() => {
         currentTime = player.getCurrentTime();
-        if (true) {
+        if (isSyncTime) {
             if (Math.abs(currentTime - lastReportedTime) >= 1) {
                 socket.emit("syncTime", roomName, currentTime);
                 lastReportedTime = currentTime;
@@ -201,6 +202,7 @@ socket.on("initState", (data, videoComment) => {
             document.getElementById("main").style.display = "";
             appPlayer.style.display = "";
             playlistChat.style.display = "";
+            isSyncTime = true;
             reportCurrentTime();
             setVideoTitle(data);
             console.log("init done!");
