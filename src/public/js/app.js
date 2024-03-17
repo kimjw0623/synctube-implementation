@@ -129,8 +129,6 @@ socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
     roomName = room;
     nickname = tokenNickname;
     socket.emit("enterRoom", room, socket.id, showRoom);
-    //socket.emit("initState", socket.id);
-    //loadMessage(roomMessage);
 });
 
 socket.on("welcome",(users, user, messages) => {
@@ -150,6 +148,7 @@ socket.on("new_message", (a, newCount) => {
     addMessage(a)
 });
 
+// If player enter/exit the room
 socket.on("roomChange", (rooms) => {
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";

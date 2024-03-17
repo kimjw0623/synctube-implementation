@@ -31,15 +31,6 @@ app.get("/test/", (_, res) => res.render("test", {
     chatMessages: ["qwer","asdf"]
 }));
 
-// Global server state
-// const serverState = {
-//     currentVideo: {},
-//     playerState: -1,
-//     playerTime: 0,
-//     playerVolume: 20,
-//     playlist: []
-// };
-
 // In-memory data storage (should be replaced with DB for production)
 const tokenNicknameDict = {};
 const tokenRoomDict = {};
@@ -196,7 +187,6 @@ function connectionSocketListeners(socket) {
 
         wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
         wsServer.sockets.emit("roomChange", publicRooms());
-        //const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
         const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
         wsServer.to(socketId).emit("initState", serverState, videoInfo.comment);
@@ -204,17 +194,18 @@ function connectionSocketListeners(socket) {
     });
     socket.on("disconnecting", () => {
         const roomName = socket.roomName;
+        wsServer.sockets.emit("roomChange", publicRooms());
         roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
         socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("disconnect", () => {
-        wsServer.sockets.emit("roomChange", publicRooms());
         console.log("exit!")
     });
     socket.on("leaveRoom", (roomName) => {
         socket.leave(roomName, () => {
             console.log(`${socket.id} has left the room ${roomName}`);
         });
+        wsServer.sockets.emit("roomChange", publicRooms());
         roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
         socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
@@ -233,9 +224,6 @@ function connectionSocketListeners(socket) {
 }
 
 function playerSocketListeners(socket) {
-    // socket.on("initState", async (socketId) => {
-        
-    // });
     socket.on("stateChange", async (data) => {
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
@@ -263,7 +251,6 @@ function playerSocketListeners(socket) {
             playerState: serverState.playerState
         };
         wsServer.to(room).emit("SyncTime", data);
-        //console.log(`time: ${currentTime}`)
     });
     socket.on("videoUrlChange", async (data) => {
         const roomName = socket.roomName
@@ -301,8 +288,8 @@ function playerSocketListeners(socket) {
 }
 
 wsServer.on("connection", (socket) => { // socket connection
-    authAndJoinRoom(socket);
     wsServer.sockets.emit("roomChange", publicRooms());
+    authAndJoinRoom(socket);
     connectionSocketListeners(socket);
     playerSocketListeners(socket);
 });
@@ -312,5 +299,4 @@ const port = process.env.PORT || 3000;
 const ipAddr = process.env.IP_ADDR || "0.0.0.0";
 httpServer.listen(port, ipAddr, () => {
     console.log(`Server listening on http://localhost:${port}`);
-    //initializeServer().then(() => console.log("Server initialized"));
 });
