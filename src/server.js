@@ -52,11 +52,11 @@ async function initializeServer(serverState) {
     serverState.currentVideo = parseVideoMetadata(videoInfo.metadata);
     
     if (initPlaylist.length != 0) {
-        initPlaylist.forEach(async videoId => {
+        for (const videoId of initPlaylist) {
             await utils.insertVideoDB(videoId);
-            videoInfo = await utils.readVideoDB(videoId);
+            const videoInfo = await utils.readVideoDB(videoId);
             serverState.playlist.push(parseVideoMetadata(videoInfo.metadata));
-        });
+        }
     }
     return serverState
 }
