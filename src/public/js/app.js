@@ -13,6 +13,7 @@ const form = welcome.querySelector("form");
 const room = document.getElementById("room");
 const chatForm = document.getElementById("chatForm");
 const userList = document.getElementById("userList");
+const changeIdForm = document.getElementById("changeId");
 
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
@@ -119,6 +120,14 @@ function handleHomeSubmit() {
     document.getElementById("welcome").hidden = false;
 }
 
+function handleChangeIdSubmit(event) {
+    event.preventDefault();
+    const input = changeIdForm.querySelector("input");
+    socket.emit("changeUserId", input.value);
+    nickname = input.value;
+    input.value = "";
+}
+
 socket.on('issueToken', (token, tokenNickname) => {
     nickname = tokenNickname;
     localStorage.setItem('token', token);
@@ -158,5 +167,6 @@ socket.on("roomChange", (rooms) => {
     })
 });
 
+changeIdForm.addEventListener("submit", handleChangeIdSubmit);
 homeButton.addEventListener("click", handleHomeSubmit);
 form.addEventListener("submit", handleRoomSubmit);

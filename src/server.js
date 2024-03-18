@@ -159,6 +159,13 @@ function connectionSocketListeners(socket) {
         tokenRoomDict[token] = roomName;
         wsServer.to(socket.id).emit('issueToken', token, nickname);
     });
+    socket.on("changeUserId", (newNickname) => {
+        const roomName = socket.roomName;
+        roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
+        roomUser[roomName].push(newNickname);
+        socket.nickname = newNickname;
+        wsServer.to(roomName).emit("bye", roomUser[roomName], newNickname);
+    });
     socket.on("enterRoom", async (roomName, socketId, done) => {
         socket.roomName = roomName;
         // Join room and emit 

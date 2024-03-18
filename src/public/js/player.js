@@ -273,8 +273,6 @@ function createVideoListItem(videoItem) {
 }
 
 socket.on("updatePlaylist", (data) => {
-    console.log(data)
-    console.log("updateplaylist");
     const playlistList = playlistForm.querySelector("ol");
     const sortableList = document.getElementById("sortableList");
     playlistList.remove();
@@ -286,7 +284,6 @@ socket.on("updatePlaylist", (data) => {
     data.forEach(videoItem => {
         const videoListItem = createVideoListItem(videoItem);
         newPlaylistList.appendChild(videoListItem);
-        console.log("add item");
     });
     playlistForm.insertBefore(newPlaylistList, sortableList);
     var sortable = new Sortable(document.getElementById('sortable-list'), {

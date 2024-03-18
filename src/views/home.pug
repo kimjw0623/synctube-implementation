@@ -79,6 +79,11 @@ html(lang="en")
                         span(style='float:center; font-weight:bold; font-size: 20px') Users
                     .row.mx-1
                         ul#userList
+                    .row
+                        .col
+                            form(class="form-inline")#changeId
+                                input.form-control(type='text', placeholder='New ID', required)
+                                button.btn.btn-outline-light(type='submit',class="round") Change ID
         
                 
         script(src="/socket.io/socket.io.js")
