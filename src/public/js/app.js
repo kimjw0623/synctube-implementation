@@ -112,6 +112,9 @@ function handleHomeSubmit() {
     localStorage.removeItem("token");
     isStateChangeEvent = false;
     player.stopVideo();
+    if (commentIntervalId !== null) {
+        clearInterval(commentIntervalId);
+    }
     // UI
     room.hidden = true;
     document.getElementById("main").style.display = "none";

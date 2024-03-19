@@ -7,6 +7,9 @@ let isSyncTime = false;
 
 let lastPlayerState = -1
 const clientDelay = 0.5;
+let allComments = [];
+let commentIntervalId = null;
+
 //const appPlayer = document.getElementById("videoUrl");
 const playButton = appPlayer.querySelector("#playButton");
 const addPlaylistButton = document.querySelector("#addButton");
@@ -48,6 +51,28 @@ function reportCurrentTime() {
     }, 2000);
 }
 
+function shuffleComments() {
+    if (commentIntervalId !== null) {
+        clearInterval(commentIntervalId);
+    }
+    listComments(allComments.slice(0, 10));
+    commentIntervalId = setInterval(() => {
+        let shuffledArray = [];
+        if (10 > allComments.length) {
+            console.warn("Requested more elements than are available in the array.");
+            shuffledArray = allComments.slice();
+        }
+        else {
+            for (let i = allComments.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allComments[i], allComments[j]] = [allComments[j], allComments[i]];
+            }
+            shuffledArray = allComments.slice(0, 10); 
+        }
+        listComments(shuffledArray);
+    }, 10000);
+}
+
 // block onPlayerStateChange for {timeOut} ms
 function blockStateChange(targetFunction, timeOut=200){
     isStateChangeEvent = false;
@@ -86,7 +111,7 @@ function listComments(videoComment) {
     commentsUl.remove();
     const newCommentsUl = document.createElement("ul");
     commentDiv.appendChild(newCommentsUl);
-    videoComment.items.forEach(commentItem => {
+    videoComment.forEach(commentItem => {
         const comment = commentItem.snippet.topLevelComment.snippet.textDisplay;
         const author = commentItem.snippet.topLevelComment.snippet.authorDisplayName;
         const li = document.createElement("li");
@@ -175,7 +200,8 @@ function handleDeletePlaylist() {
 socket.on("videoUrlChange", (data, videoComment) => {
     blockStateChange(function () {
         currentTime = 0;
-        listComments(videoComment);
+        allComments = videoComment.items;
+        shuffleComments();
         setVideoTitle(data);
         player.loadVideoById(mediaContentUrl = String(data.currentVideo.id));
         player.seekTo(0, true);
@@ -189,7 +215,8 @@ socket.on("initState", (data, videoComment) => {
         if (isPlayerReady) {
             clearInterval(waitForPlayerReady);
             blockStateChange(function () {
-                listComments(videoComment);
+                allComments = videoComment.items;
+                shuffleComments();
                 setTimeout(function () {
                     player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
                     if (data.playerState === YT.PlayerState.PLAYING) {

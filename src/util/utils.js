@@ -61,7 +61,7 @@ export function parseISODuration(duration, onlySecond = true) {
 
 async function listComments(videoId) {
     const apiKey = process.env.YOUTUBE_DATA_API_KEY;
-    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=10`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?key=${apiKey}&textFormat=plainText&part=snippet&videoId=${videoId}&maxResults=50`;
     let commentList
     try {
         const response = await fetch(apiUrl);
