@@ -20,6 +20,12 @@ appPlayer.style.display = "none";
 playlistChat.style.display = "none";
 room.hidden = true;
 
+function getRandomColorHex() {
+    const randomColor = () => Math.floor(Math.random() * 256).toString(16);
+    const color = `#${randomColor()}${randomColor()}${randomColor()}`;
+    return color.length < 7 ? color + '0' : color;
+}
+
 function createElement(type, text, style) {
     const newElement = document.createElement(type);
     newElement.innerText = text;
@@ -41,7 +47,16 @@ function loadUserList(data) {
 function addMessage(message) {
     const ul = room.querySelector("ul");
     const li = document.createElement("li");
-    li.innerText = message;
+
+    if (message.nickname === nickname) {
+        message.nickname = "You";
+    }
+    const firstWordElement = document.createElement("span");
+    firstWordElement.style.color = message.color;
+    firstWordElement.textContent = message.nickname+": ";
+
+    li.appendChild(firstWordElement);
+    li.appendChild(document.createTextNode(message.content));
     ul.appendChild(li);
 }
 
@@ -51,12 +66,18 @@ function loadMessage(messages) {
     oldMessages.forEach(msg => {
         msg.remove();
     });
-    messages.forEach(data => {
+    messages.forEach(message => {
+
         const li = document.createElement("li");
-        if (data.nickname === nickname) {
-            data.nickname = "You";
+        if (message.nickname === nickname) {
+            message.nickname = "You";
         }
-        li.innerText = `${data.nickname}: ${data.content}`;
+        const firstWordElement = document.createElement("span");
+        firstWordElement.style.color = message.color;
+        firstWordElement.textContent = message.nickname+": ";
+
+        li.appendChild(firstWordElement);
+        li.appendChild(document.createTextNode(message.content));
         ul.appendChild(li);
     });
 }
@@ -65,8 +86,14 @@ function handleMessageSubmit(event){
     event.preventDefault();
     const input = chatForm.querySelector("input");
     const value = input.value
-    socket.emit("new_message", input.value, roomName, () => {
-        addMessage(`You: ${value}`);
+    const chatColor = localStorage.getItem("chatColor");
+    socket.emit("newMessage", input.value, roomName, chatColor, () => {
+        const messageData = {
+            "nickname": nickname,
+            "content": value,
+            "color": chatColor
+        }
+        addMessage(messageData);
     });
     input.value = ""
 }
@@ -101,8 +128,10 @@ function handleRoomSubmit(event) {
     if (!localStorage.getItem("token")) {
         socket.emit("requestToken", roomName);
     }
+    if (!localStorage.getItem("chatColor")) {
+        localStorage.setItem("chatColor", getRandomColorHex());
+    }
     socket.emit("enterRoom", roomName, socket.id, showRoom);
-    //socket.emit("initState", socket.id);
     input.value = "";
 }
 
@@ -110,6 +139,7 @@ function handleHomeSubmit() {
     // Exit room only (maintain socket Object; only available at server)
     socket.emit('leaveRoom', roomName); 
     localStorage.removeItem("token");
+    localStorage.removeItem("chatColor");
     isStateChangeEvent = false;
     player.stopVideo();
     if (commentIntervalId !== null) {
@@ -156,8 +186,8 @@ socket.on("bye", (users, user) => {
     //addMessage(`${user} Bye!`);
 });
 
-socket.on("new_message", (a, newCount) => {
-    addMessage(a)
+socket.on("newMessage", (messageData, newCount) => {
+    addMessage(messageData);
 });
 
 // If player enter/exit the room

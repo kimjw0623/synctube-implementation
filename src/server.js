@@ -216,15 +216,16 @@ function connectionSocketListeners(socket) {
         roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
         socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
-    socket.on("new_message", (msg, room, done) => {
+    socket.on("newMessage", (msg, room, chatColor, done) => {
         const nickname = socket.nickname
         const messageData = {
             "nickname": nickname,
-            "content": msg
+            "content": msg,
+            "color": chatColor
         }
         roomMessage[room].push(messageData);
         console.log(room, roomMessage);
-        socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`, countRoom(room))
+        socket.to(room).emit("newMessage", messageData, countRoom(room))
         done();
     });
     //socket.on("nickname", nickname => socket["nickname"] = nickname);
