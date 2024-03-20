@@ -171,6 +171,8 @@ function handleSwitchChatPlaylist() {
             else {
                 document.getElementById("playlistForm").hidden = true;
                 document.getElementById("room").hidden = false;
+                const chatContainer = document.querySelector(".chat-messages");
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
 		});
 	});

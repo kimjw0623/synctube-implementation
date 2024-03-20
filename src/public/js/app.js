@@ -17,7 +17,7 @@ const changeIdForm = document.getElementById("changeId");
 
 document.getElementById("main").style.display = "none";
 appPlayer.style.display = "none";
-playlistChat.style.display = "none";
+playlistChat.style.display = "block";
 room.hidden = true;
 
 function getRandomColorHex() {
@@ -63,7 +63,7 @@ function addMessage(message) {
 }
 
 function loadMessage(messages) {
-    const chatContainer = document.querySelector(".chat-container");
+    const chatContainer = document.querySelector(".chat-messages");
     const ul = room.querySelector("ul");
     ul.innerHTML = ""; // Delete all elements in ul (delete old msg)
     messages.forEach(message => {
@@ -79,7 +79,6 @@ function loadMessage(messages) {
         li.appendChild(document.createTextNode(message.content));
         ul.appendChild(li);
     });
-    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function handleMessageSubmit(event){
@@ -149,7 +148,7 @@ function handleHomeSubmit() {
     room.hidden = true;
     document.getElementById("main").style.display = "none";
     appPlayer.style.display = "none";
-    playlistChat.style.display = "none";
+    playlistChat.style.display = "block";
     document.getElementById("welcome").hidden = false;
 }
 
