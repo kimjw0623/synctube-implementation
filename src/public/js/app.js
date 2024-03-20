@@ -58,16 +58,15 @@ function addMessage(message) {
     li.appendChild(firstWordElement);
     li.appendChild(document.createTextNode(message.content));
     ul.appendChild(li);
+    // Scroll to last chat msg
+    li.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function loadMessage(messages) {
+    const chatContainer = document.querySelector(".chat-container");
     const ul = room.querySelector("ul");
-    const oldMessages = ul.querySelectorAll("li");
-    oldMessages.forEach(msg => {
-        msg.remove();
-    });
+    ul.innerHTML = ""; // Delete all elements in ul (delete old msg)
     messages.forEach(message => {
-
         const li = document.createElement("li");
         if (message.nickname === nickname) {
             message.nickname = "You";
@@ -80,6 +79,7 @@ function loadMessage(messages) {
         li.appendChild(document.createTextNode(message.content));
         ul.appendChild(li);
     });
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function handleMessageSubmit(event){
