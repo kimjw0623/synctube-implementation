@@ -134,6 +134,7 @@ function authAndJoinRoom(socket) {
                 return;
             }
             if (roomName) {
+                socket.jwt = token;
                 socket.nickname = tokenNicknameDict[token];
                 socket.emit("enterRoomWithToken", roomName, tokenNicknameDict[token], roomMessage[roomName]);
             }
@@ -163,6 +164,7 @@ function connectionSocketListeners(socket) {
         const roomName = socket.roomName;
         roomUser[roomName] = removeUserFromList(roomUser[roomName], oldNickname)
         roomUser[roomName].push(newNickname);
+        roomUser[roomName].sort();
         socket.nickname = newNickname;
         // Update token-nickname dict
         tokenNicknameDict[socket.jwt] = newNickname;
@@ -192,6 +194,7 @@ function connectionSocketListeners(socket) {
         }
         else {
             roomUser[roomName].push(socket.nickname);
+            roomUser[roomName].sort();
         }
 
         wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
