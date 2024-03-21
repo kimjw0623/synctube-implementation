@@ -41,49 +41,47 @@ html(lang="en")
                         script(src="/public/js/iframe.js")
                     .row#videoTitle
                     .row#videoChannel
-                    //- .row.my-1(style="margin-left:1px;")
-                    //-     span Comments
                     .row.comment-container.my-1(id="comment")
                         ul
                 .col-lg-4#playlistChat
-                    .row.mx-1
-                        div(class="btn-group btn-group-toggle center",data-toggle="buttons")
-                            |    <label class="btn btn-secondary active" name="radio">
-                            |        <input type="radio" name="options" id="option1" autocomplete="off" checked> Playlist
-                            |    </label>
-                            |    <label class="btn btn-secondary" name="radio">
-                            |        <input type="radio" name="options" id="option2" autocomplete="off"> Chat
-                            |    </label>
-                    .row.mx-1
+                    .btn-group.btn-group-toggle.center(data-toggle="buttons")
+                        |    <label class="btn btn-secondary active" name="radio">
+                        |        <input type="radio" name="options" id="option1" autocomplete="off" checked> Playlist
+                        |    </label>
+                        |    <label class="btn btn-secondary" name="radio">
+                        |        <input type="radio" name="options" id="option2" autocomplete="off"> Chat
+                        |    </label>
+
+                    .content-container
                         .playlist-chat-container
                             .playlist-container.p-0#playlistForm
                                 ol#sortable-list.list-group
                                     li.list-group-item Item 1
                                     li.list-group-item Item 2
-
                                 script(src='https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js')#sortableList
                                 script.
                                     // Initialize the sortable list
                                     var sortable = new Sortable(document.getElementById('sortable-list'), {
-                                    animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
-                                    ghostClass: 'sortable-ghost' // Class name for the drop placeholder
+                                        animation: 150, // ms, animation speed moving items when sorting, `0` — without animation
+                                        ghostClass: 'sortable-ghost' // Class name for the drop placeholder
                                     });
-                            .chat-container.p-0(id="room",class="rounded")
+                            .chat-container.p-0(id="room", class="rounded")
                                 .chat-messages#chatMessages
                                     ul
                                 .chat-input-container
                                     form#chatForm
                                         input.form-control(type='text', placeholder='Type a message...', required)
-                    .row.mx-1
-                        span(style='float:center; font-weight:bold; font-size: 20px') Users
-                    .row.mx-1
-                        ul#userList
+
+                        .users-container
+                            span(style='font-weight:bold; font-size: 20px') Users
+                            ul#userList
+
                     .row
                         .col
-                            form(class="form-inline")#changeId
+                            form.form-inline#changeId
                                 input.form-control(type='text', placeholder='New ID', required)
-                                button.btn.btn-outline-light(type='submit',class="round") Change ID
-        
+                                button.btn.btn-outline-light(type='submit', class="round") Change ID
+            
                 
         script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js")

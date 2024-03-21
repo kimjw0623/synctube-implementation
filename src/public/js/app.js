@@ -155,7 +155,7 @@ function handleHomeSubmit() {
 function handleChangeIdSubmit(event) {
     event.preventDefault();
     const input = changeIdForm.querySelector("input");
-    socket.emit("changeUserId", input.value);
+    socket.emit("changeUserId", input.value, nickname);
     nickname = input.value;
     input.value = "";
 }
