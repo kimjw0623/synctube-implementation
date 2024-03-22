@@ -198,6 +198,18 @@ function handleDeletePlaylist() {
     socket.emit("changePlaylist", idList, roomName);
 }
 
+function handleDirectPlaylist(videoId) {
+    socket.emit("videoUrlChange", {
+        videoId: videoId,
+        room: roomName
+    });
+    let idList = [];
+    const sortableList = document.getElementById("sortable-list");
+    sortableList.querySelectorAll("li").forEach((id) => {
+        idList.push(id.querySelector("img").alt);
+    })
+    socket.emit("changePlaylist", idList, roomName);
+}
 
 socket.on("videoUrlChange", (data, videoComment) => {
     blockStateChange(function () {
@@ -291,12 +303,19 @@ function createVideoListItem(videoItem) {
         li.remove();
         handleDeletePlaylist();
     };
+    const playButton = createElement("button", "arrow_right", "float:right;");
+    playButton.classList.add("material-symbols-outlined");
+    playButton.onclick = function () {
+        li.remove();
+        handleDirectPlaylist(img.alt);
+    };
 
     li.appendChild(img);
     li.appendChild(titleSpan);
     li.appendChild(durationSpan);
     li.appendChild(channelSpan);
     li.appendChild(deleteButton);
+    li.appendChild(playButton)
 
     return li;
 }

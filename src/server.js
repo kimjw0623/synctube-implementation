@@ -87,7 +87,18 @@ function removeUserFromList(roomUserList, nickname) {
 }
 
 function getYoutubeVideoId(url) {
-    var searchParams = new URLSearchParams(new URL(url).search);
+    let searchParams
+    const pattern = /^[a-zA-Z0-9_-]{11}$/;
+    if (pattern.test(url)) {
+        return url
+    }
+    try {
+        searchParams = new URLSearchParams(new URL(url).search);
+    }
+    catch (error) {
+        console.error("An error occurred: ", error.message);
+        return null
+    }
     return searchParams.get("v");
 }
 
@@ -119,9 +130,11 @@ function isVideoEnd(duration, currentTime) {
 
 async function getMetadataFromVideoId(data) {
     const videoId = getYoutubeVideoId(data.videoId)
-    await utils.insertVideoDB(videoId);
-    const videoInfo = await utils.readVideoDB(videoId);
-    return parseVideoMetadata(videoInfo.metadata);
+    if (videoId) {
+        await utils.insertVideoDB(videoId);
+        const videoInfo = await utils.readVideoDB(videoId);
+        return parseVideoMetadata(videoInfo.metadata);
+    }
 }
 
 function authAndJoinRoom(socket) {
