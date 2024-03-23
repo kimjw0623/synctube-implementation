@@ -164,15 +164,17 @@ function handleSwitchChatPlaylist() {
 	radios.forEach((radio) => {
         radio.addEventListener("click", (e) => {
             const current = e.currentTarget;
-            if (current.querySelector("input").id === "option1") {
+            if (current.querySelector("input").id === "playlist") {
                 document.getElementById("playlistForm").hidden = false;
                 document.getElementById("room").hidden = true;
+                localStorage.setItem("switchOption", "playlist");
             }
             else {
                 document.getElementById("playlistForm").hidden = true;
                 document.getElementById("room").hidden = false;
                 const chatContainer = document.querySelector(".chat-messages");
                 chatContainer.scrollTop = chatContainer.scrollHeight;
+                localStorage.setItem("switchOption", "chat");
             }
 		});
 	});
@@ -246,6 +248,27 @@ socket.on("initState", (data, videoComment) => {
             isSyncTime = true;
             reportCurrentTime();
             setVideoTitle(data);
+            // Load choice
+            const optionValue = localStorage.getItem("switchOption");
+            if (optionValue) {
+                const radioOptions = document.querySelectorAll("label[name='radio']");
+                for (const option of radioOptions) {
+                    if (option.value === optionValue) {
+                        option.checked = true;
+                        break;
+                    }
+                }
+                if (optionValue === "playlist") {
+                    document.getElementById("playlistForm").hidden = false;
+                    document.getElementById("room").hidden = true;
+                }
+                else {
+                    document.getElementById("playlistForm").hidden = true;
+                    document.getElementById("room").hidden = false;
+                    const chatContainer = document.querySelector(".chat-messages");
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            }
             console.log("init done!");
         }
     }, 100);
