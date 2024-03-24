@@ -26,12 +26,6 @@ function getRandomColorHex() {
     return color.length < 7 ? color + '0' : color;
 }
 
-function createElement(type, text, style) {
-    const newElement = document.createElement(type);
-    newElement.innerText = text;
-    newElement.style.cssText = style;
-    return newElement;
-}
 
 function loadUserList(data) {
     const oldUsers = userList.querySelectorAll("li");
@@ -39,7 +33,10 @@ function loadUserList(data) {
         user.remove();
     });
     data.forEach(user => {
-        const li = createElement("li", user, "font-size: 15px");
+        const li = document.createElement("li");
+        const userColor = localStorage.getItem("chatColor");
+        const span = createElement("span", user, "font-size: 15px", userColor);
+        li.appendChild(span);
         userList.appendChild(li);
     });
 }

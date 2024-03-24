@@ -89,6 +89,7 @@ async function getVideoMetadata(videoId) {
 
     return videoMetadata
 }
+
 export async function insertVideoDB(videoId) {
     const comment = await listComments(videoId);
     const metadata = await getVideoMetadata(videoId);

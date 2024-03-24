@@ -18,10 +18,13 @@ const commentDiv = document.getElementById("comment");
 playButton.addEventListener("click", handleVideoUrlSubmit);
 addPlaylistButton.addEventListener("click", handlePlaylistSubmit);
 
-function createElement(type, text, style) {
+function createElement(type, text, style, color=null) {
     const newElement = document.createElement(type);
     newElement.innerText = text;
     newElement.style.cssText = style;
+    if (color) {
+        newElement.style.color = color;
+    }
     return newElement;
 }
 
@@ -151,9 +154,12 @@ function setVideoTitle(data) {
 function handlePlaylistSubmit(event) {
     event.preventDefault();
     const input = document.getElementById("playNow");
-    socket.emit("addPlaylist", {
+    const userColor = localStorage.getItem("chatColor");
+    socket.emit("addVideo", {
         videoId: input.value,
-        room: roomName
+        room: roomName,
+        applicant: nickname,
+        applicantColor: userColor,
     });
     console.log("add playlist! - submit");
     input.value = "";
@@ -183,11 +189,12 @@ function handleSwitchChatPlaylist() {
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     sortableList.addEventListener("drop", (e) => {
-        let idList = [];
-        sortableList.querySelectorAll("li").forEach((id) => {
-            idList.push(id.querySelector("img").alt);
+        const playlist = [];
+        sortableList.querySelectorAll("li").forEach((videoBlock) => {
+            const videoMetadata = JSON.parse(videoBlock.querySelector("div").textContent);
+            playlist.push(videoMetadata);
         })
-        socket.emit("changePlaylist", idList, roomName);
+        socket.emit("changePlaylist", playlist, roomName);
 	});
 };
 
@@ -317,9 +324,13 @@ function createVideoListItem(videoItem) {
     img.alt = videoItem.id;
     img.style.cssText = 'width:100px; height:auto; float:left;';
 
+    const videoMetadataSpan = document.createElement("div");
+    videoMetadataSpan.hidden = true;
+    videoMetadataSpan.textContent = JSON.stringify(videoItem);
     const titleSpan = createElement("span", videoItem.title, "font-weight:bold; display:block; margin-left:110px;");
-    const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px; float:left;");
+    const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px;");
     const durationSpan = createElement("span", videoItem.duration, "display:block; margin-left:110px;");
+    const applicantSpan = createElement("span", `Requested by: ${videoItem.applicant}`, "display:block; margin-left:110px;", videoItem.applicantColor);
     const deleteButton = createElement("button", "Delete", "float:right;");
     deleteButton.classList.add("material-symbols-outlined");
     deleteButton.onclick = function() {
@@ -334,9 +345,11 @@ function createVideoListItem(videoItem) {
     };
 
     li.appendChild(img);
+    li.appendChild(videoMetadataSpan);
     li.appendChild(titleSpan);
     li.appendChild(durationSpan);
     li.appendChild(channelSpan);
+    li.appendChild(applicantSpan);
     li.appendChild(deleteButton);
     li.appendChild(playButton)
 

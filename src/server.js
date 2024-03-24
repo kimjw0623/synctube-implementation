@@ -102,18 +102,26 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-function parseVideoMetadata(response) {
+function parseVideoMetadata(response, data=null) {
     const id = response.items[0].id;
     const title = response.items[0].snippet.title;
     const thumbnailUrl = response.items[0].snippet.thumbnails.default.url;
     const channelTitle = response.items[0].snippet.channelTitle;
     const duration = response.items[0].contentDetails.duration;
+    let applicant = "default";
+    let applicantColor = "#fff";
+    if (data) {
+        applicant = data["applicant"];
+        applicantColor = data["applicantColor"];
+    }
     const result = {
         id: id,
         title: title,
         thumbnailUrl: thumbnailUrl,
         channelTitle: channelTitle,
-        duration: utils.parseISODuration(duration, false)
+        duration: utils.parseISODuration(duration, false),
+        applicant: applicant,
+        applicantColor: applicantColor,
     }
     return result;
 }
@@ -133,7 +141,7 @@ async function getMetadataFromVideoId(data) {
     if (videoId) {
         await utils.insertVideoDB(videoId);
         const videoInfo = await utils.readVideoDB(videoId);
-        return parseVideoMetadata(videoInfo.metadata);
+        return parseVideoMetadata(videoInfo.metadata, data);
     }
 }
 
@@ -289,24 +297,20 @@ function playerSocketListeners(socket) {
             wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
         }
     });
-    socket.on("addPlaylist", async (data) => {
+    socket.on("addVideo", async (data) => {
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
         if (data.videoId != "") {
-            serverState.playlist.push(await getMetadataFromVideoId(data));
+            const videoMetadata = await getMetadataFromVideoId(data);
+            serverState.playlist.push(videoMetadata);
             wsServer.to(data.room).emit("updatePlaylist", serverState.playlist)
         }
     });
-    socket.on("changePlaylist", async (data, room) => {
+    socket.on("changePlaylist", async (idList, room) => {
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
-        if (data.length !== 0) {
-            serverState.playlist = [];
-            const promises = data.map(videoId => utils.readVideoDB(videoId));
-            const videosInfo = await Promise.all(promises);
-            videosInfo.forEach(videoInfo => {
-                serverState.playlist.push(parseVideoMetadata(videoInfo.metadata));
-            });
+        if (idList.length !== 0) {
+            serverState.playlist = idList;
             wsServer.to(room).emit("updatePlaylist", serverState.playlist);
             console.log(serverState.playlist);
         }
