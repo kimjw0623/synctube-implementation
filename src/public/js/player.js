@@ -186,38 +186,28 @@ function handleSwitchChatPlaylist() {
 	});
 };
 
+function sendCurrentPlaylist(sortableList) {
+    const playlist = [];
+    sortableList.querySelectorAll("li").forEach((videoBlock) => {
+        const videoMetadata = JSON.parse(videoBlock.querySelector("div").textContent);
+        playlist.push(videoMetadata);
+    })
+    socket.emit("changePlaylist", playlist, roomName);
+}
+
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     sortableList.addEventListener("drop", (e) => {
-        const playlist = [];
-        sortableList.querySelectorAll("li").forEach((videoBlock) => {
-            const videoMetadata = JSON.parse(videoBlock.querySelector("div").textContent);
-            playlist.push(videoMetadata);
-        })
-        socket.emit("changePlaylist", playlist, roomName);
+        handleCurrentPlaylist(sortableList);
 	});
 };
-
-function handleDeletePlaylist() {
-    let idList = [];
-    const sortableList = document.getElementById("sortable-list");
-    sortableList.querySelectorAll("li").forEach((id) => {
-        idList.push(id.querySelector("img").alt);
-    })
-    socket.emit("changePlaylist", idList, roomName);
-}
 
 function handleDirectPlaylist(videoId) {
     socket.emit("videoUrlChange", {
         videoId: videoId,
         room: roomName
     });
-    let idList = [];
-    const sortableList = document.getElementById("sortable-list");
-    sortableList.querySelectorAll("li").forEach((id) => {
-        idList.push(id.querySelector("img").alt);
-    })
-    socket.emit("changePlaylist", idList, roomName);
+    handleCurrentPlaylist(sortableList);
 }
 
 socket.on("videoUrlChange", (data, videoComment) => {
@@ -335,7 +325,7 @@ function createVideoListItem(videoItem) {
     deleteButton.classList.add("material-symbols-outlined");
     deleteButton.onclick = function() {
         li.remove();
-        handleDeletePlaylist();
+        sendCurrentPlaylist(sortableList);
     };
     const playButton = createElement("button", "arrow_right", "float:right;");
     playButton.classList.add("material-symbols-outlined");
