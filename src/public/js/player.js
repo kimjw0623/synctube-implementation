@@ -198,16 +198,17 @@ function sendCurrentPlaylist(sortableList) {
 function handleSortablePlaylist() {
     const sortableList = document.getElementById("sortable-list");
     sortableList.addEventListener("drop", (e) => {
-        handleCurrentPlaylist(sortableList);
+        sendCurrentPlaylist(sortableList);
 	});
 };
 
 function handleDirectPlaylist(videoId) {
+    const sortableList = document.getElementById("sortable-list");
     socket.emit("videoUrlChange", {
         videoId: videoId,
         room: roomName
     });
-    handleCurrentPlaylist(sortableList);
+    sendCurrentPlaylist(sortableList);
 }
 
 socket.on("videoUrlChange", (data, videoComment) => {

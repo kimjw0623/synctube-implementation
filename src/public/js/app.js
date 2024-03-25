@@ -33,9 +33,9 @@ function loadUserList(data) {
         user.remove();
     });
     data.forEach(user => {
+        console.log(user);
         const li = document.createElement("li");
-        const userColor = localStorage.getItem("chatColor");
-        const span = createElement("span", user, "font-size: 15px", userColor);
+        const span = createElement("span", user.nickname, "font-size: 15px", user.color);
         li.appendChild(span);
         userList.appendChild(li);
     });
@@ -127,7 +127,12 @@ function handleRoomSubmit(event) {
     if (!localStorage.getItem("chatColor")) {
         localStorage.setItem("chatColor", getRandomColorHex());
     }
-    socket.emit("enterRoom", roomName, socket.id, showRoom);
+    const chatColor = localStorage.getItem("chatColor");
+    data = {
+        roomName: roomName,
+        userColor: chatColor
+    }
+    socket.emit("enterRoom", data, socket.id, showRoom);
     input.value = "";
 }
 
@@ -164,9 +169,14 @@ socket.on('issueToken', (token, tokenNickname) => {
 
 socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
     console.log("Reconnected with token.");
+    const chatColor = localStorage.getItem("chatColor");
     roomName = room;
     nickname = tokenNickname;
-    socket.emit("enterRoom", room, socket.id, showRoom);
+    data = {
+        roomName: roomName,
+        userColor: chatColor
+    }
+    socket.emit("enterRoom", data, socket.id, showRoom);
 });
 
 socket.on("welcome",(users, user, messages) => {
@@ -176,7 +186,7 @@ socket.on("welcome",(users, user, messages) => {
     //addMessage(`${user} joined!`);
 });
 
-socket.on("bye", (users, user) => {
+socket.on("updateUserList", (users, user) => {
     const h3 = room.querySelector("h3");
     loadUserList(users);
     //addMessage(`${user} Bye!`);

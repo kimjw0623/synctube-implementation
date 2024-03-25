@@ -77,13 +77,30 @@ function countRoom(roomName){
     return wsServer.sockets.adapter.rooms.get(roomName).size;
 }
 
-function removeUserFromList(roomUserList, nickname) {
+function removeUserFromList(roomUserList, targetNickname) {
     // remove user from userList
-    if (roomUserList) {
-        const idx = roomUserList.indexOf(nickname);
-        if (idx > -1) roomUserList.splice(idx, 1);
+    // if (roomUserList) {
+    //     const idx = roomUserList.indexOf(nickname);
+    //     if (idx > -1) roomUserList.splice(idx, 1);
+    // }
+    if (!roomUserList) {
+        return [], "#fff"
     }
-    return roomUserList
+    let userList = [];
+    let targetColor = "#fff";
+    roomUserList.forEach(item => {
+        if (item.nickname !== targetNickname) {
+            userList.push(item);
+        }
+        else {
+            targetColor = item.color;
+        }
+    });
+    const data = {
+        userList: userList,
+        targetColor: targetColor
+    };
+    return data
 }
 
 function getYoutubeVideoId(url) {
@@ -183,15 +200,21 @@ function connectionSocketListeners(socket) {
     });
     socket.on("changeUserId", (newNickname, oldNickname) => {
         const roomName = socket.roomName;
-        roomUser[roomName] = removeUserFromList(roomUser[roomName], oldNickname)
-        roomUser[roomName].push(newNickname);
+        console.log(newNickname, oldNickname);
+        const result = removeUserFromList(roomUser[roomName], oldNickname);
+        roomUser[roomName] = result.userList;
+        const targetColor = result.targetColor;
+        roomUser[roomName].push({nickname: newNickname, color: targetColor});
         roomUser[roomName].sort();
+        console.log(roomUser[roomName]);
         socket.nickname = newNickname;
         // Update token-nickname dict
         tokenNicknameDict[socket.jwt] = newNickname;
-        wsServer.to(roomName).emit("bye", roomUser[roomName], newNickname);
+        wsServer.to(roomName).emit("updateUserList", roomUser[roomName], newNickname);
     });
-    socket.on("enterRoom", async (roomName, socketId, done) => {
+    socket.on("enterRoom", async (data, socketId, done) => {
+        const roomName = data.roomName;
+        const chatColor = data.userColor;
         socket.roomName = roomName;
         // Join room and emit 
         socket.join(roomName);
@@ -200,9 +223,14 @@ function connectionSocketListeners(socket) {
             console.log("First Message!", roomName);
             roomMessage[roomName] = [];
         }
+        console.log(socket.nickname);
+
         if (!(roomName in roomUser)) { // First client in the room
             console.log("First user!", roomName);
-            roomUser[roomName] = [socket.nickname];
+            roomUser[roomName] = [{
+                nickname: socket.nickname,
+                color: chatColor
+            }];
             const serverState = {
                 currentVideo: {},
                 playerState: -1,
@@ -214,10 +242,13 @@ function connectionSocketListeners(socket) {
             roomPlayerState[roomName] = await initializeServer(roomPlayerState[roomName]);
         }
         else {
-            roomUser[roomName].push(socket.nickname);
+            roomUser[roomName].push({
+                nickname: socket.nickname,
+                color: chatColor
+            });
             roomUser[roomName].sort();
         }
-
+        console.log(roomUser[roomName]);
         wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
         wsServer.sockets.emit("roomChange", publicRooms());
         const serverState = roomPlayerState[roomName];
@@ -228,7 +259,8 @@ function connectionSocketListeners(socket) {
     socket.on("disconnecting", () => {
         const roomName = socket.roomName;
         wsServer.sockets.emit("roomChange", publicRooms());
-        roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
+        const result = removeUserFromList(roomUser[roomName], socket.nickname);
+        roomUser[roomName] = result.userList;
         socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("disconnect", () => {
@@ -239,7 +271,8 @@ function connectionSocketListeners(socket) {
             console.log(`${socket.id} has left the room ${roomName}`);
         });
         wsServer.sockets.emit("roomChange", publicRooms());
-        roomUser[roomName] = removeUserFromList(roomUser[roomName], socket.nickname)
+        const result = removeUserFromList(roomUser[roomName], socket.nickname);
+        roomUser[roomName] = result.userList;
         socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("newMessage", (msg, room, chatColor, done) => {
