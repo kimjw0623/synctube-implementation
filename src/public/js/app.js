@@ -1,9 +1,8 @@
-
-let token = localStorage.getItem('token');
+let token = localStorage.getItem("token");
 let query = token ? { query: `token=${token}` } : {};
-let socket = io.connect('', query);
+let socket = io.connect("", query);
 let roomName = 1;
-let nickname = "Default Nickname"
+let nickname = "Default Nickname";
 
 const appPlayer = document.getElementById("videoUrl");
 const playlistChat = document.getElementById("playlistChat");
@@ -11,95 +10,51 @@ const homeButton = document.getElementById("home");
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
-const chatForm = document.getElementById("chatForm");
 const userList = document.getElementById("userList");
-const changeIdForm = document.getElementById("changeId");
 
-document.getElementById("main").style.display = "none";
-appPlayer.style.display = "none";
-playlistChat.style.display = "block";
-room.hidden = true;
+function setupEventListeners() {
+    homeButton.addEventListener("click", handleHomeSubmit);
+    form.addEventListener("submit", handleRoomSubmit);
+}
+
+function initUI() {
+    document.getElementById("main").style.display = "none";
+    appPlayer.style.display = "none";
+    playlistChat.style.display = "block";
+    room.hidden = true;
+}
+
+function initialize() {
+    setupEventListeners();
+    initUI();
+}
+
+initialize();
+let chatClient;
 
 function getRandomColorHex() {
     const randomColor = () => Math.floor(Math.random() * 256).toString(16);
     const color = `#${randomColor()}${randomColor()}${randomColor()}`;
-    return color.length < 7 ? color + '0' : color;
+    return color.length < 7 ? color + "0" : color;
 }
-
 
 function loadUserList(data) {
     const oldUsers = userList.querySelectorAll("li");
-    oldUsers.forEach(user => {
+    oldUsers.forEach((user) => {
         user.remove();
     });
-    data.forEach(user => {
+    data.forEach((user) => {
         console.log(user);
         const li = document.createElement("li");
-        const span = createElement("span", user.nickname, "font-size: 15px", user.color);
+        const span = createElement(
+            "span",
+            user.nickname,
+            "font-size: 15px",
+            user.color
+        );
         li.appendChild(span);
         userList.appendChild(li);
     });
-}
-
-function addMessage(message) {
-    const ul = room.querySelector("ul");
-    const li = document.createElement("li");
-
-    if (message.nickname === nickname) {
-        message.nickname = "You";
-    }
-    const firstWordElement = document.createElement("span");
-    firstWordElement.style.color = message.color;
-    firstWordElement.textContent = message.nickname+": ";
-
-    li.appendChild(firstWordElement);
-    li.appendChild(document.createTextNode(message.content));
-    ul.appendChild(li);
-    // Scroll to last chat msg
-    li.scrollIntoView({ behavior: 'smooth', block: 'end' });
-}
-
-function loadMessage(messages) {
-    const chatContainer = document.querySelector(".chat-messages");
-    const ul = room.querySelector("ul");
-    ul.innerHTML = ""; // Delete all elements in ul (delete old msg)
-    messages.forEach(message => {
-        const li = document.createElement("li");
-        if (message.nickname === nickname) {
-            message.nickname = "You";
-        }
-        const firstWordElement = document.createElement("span");
-        firstWordElement.style.color = message.color;
-        firstWordElement.textContent = message.nickname+": ";
-
-        li.appendChild(firstWordElement);
-        li.appendChild(document.createTextNode(message.content));
-        ul.appendChild(li);
-    });
-}
-
-function handleMessageSubmit(event){
-    event.preventDefault();
-    const input = chatForm.querySelector("input");
-    const value = input.value
-    const chatColor = localStorage.getItem("chatColor");
-    socket.emit("newMessage", input.value, roomName, chatColor, () => {
-        const messageData = {
-            "nickname": nickname,
-            "content": value,
-            "color": chatColor
-        }
-        addMessage(messageData);
-    });
-    input.value = ""
-}
-
-function handleNameSubmit(event) {
-    event.preventDefault();
-    const input = room.querySelector("#name input");
-    const value = input.value
-    socket.emit("nickname", input.value, roomName);
-    input.value = ""
 }
 
 function showRoom() {
@@ -109,10 +64,11 @@ function showRoom() {
     //h3.innerText = `Room ${roomName}`;
     //const msgForm = room.querySelector("#msg");
     const nameForm = room.querySelector("#name");
-    chatForm.addEventListener("submit", handleMessageSubmit);
+    // const chatForm = document.getElementById("chatForm");
+    // chatForm.addEventListener("submit", handleMessageSubmit);
     // playlist, chat
     document.getElementById("playlistForm").hidden = false;
-    document.getElementById("room").hidden = true;
+    // document.getElementById("room").hidden = true;
     handleSwitchChatPlaylist();
     handleSortablePlaylist();
 }
@@ -130,15 +86,15 @@ function handleRoomSubmit(event) {
     const chatColor = localStorage.getItem("chatColor");
     data = {
         roomName: roomName,
-        userColor: chatColor
-    }
+        userColor: chatColor,
+    };
     socket.emit("enterRoom", data, socket.id, showRoom);
     input.value = "";
 }
 
 function handleHomeSubmit() {
     // Exit room only (maintain socket Object; only available at server)
-    socket.emit('leaveRoom', roomName); 
+    socket.emit("leaveRoom", roomName);
     localStorage.removeItem("token");
     localStorage.removeItem("chatColor");
     isStateChangeEvent = false;
@@ -154,17 +110,9 @@ function handleHomeSubmit() {
     document.getElementById("welcome").hidden = false;
 }
 
-function handleChangeIdSubmit(event) {
-    event.preventDefault();
-    const input = changeIdForm.querySelector("input");
-    socket.emit("changeUserId", input.value, nickname);
-    nickname = input.value;
-    input.value = "";
-}
-
-socket.on('issueToken', (token, tokenNickname) => {
+socket.on("issueToken", (token, tokenNickname) => {
     nickname = tokenNickname;
-    localStorage.setItem('token', token);
+    localStorage.setItem("token", token);
 });
 
 socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
@@ -174,38 +122,29 @@ socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
     nickname = tokenNickname;
     data = {
         roomName: roomName,
-        userColor: chatColor
-    }
+        userColor: chatColor,
+    };
     socket.emit("enterRoom", data, socket.id, showRoom);
 });
 
-socket.on("welcome",(users, user, messages) => {
+socket.on("welcome", (users, user, messages) => {
     const h3 = room.querySelector("h3");
-    loadMessage(messages);
+    chatClient = new ChatClient(socket);
+    chatClient.loadMessage(messages);
     loadUserList(users);
     //addMessage(`${user} joined!`);
-});
-
-socket.on("updateUserList", (users, user) => {
-    const h3 = room.querySelector("h3");
-    loadUserList(users);
-    //addMessage(`${user} Bye!`);
-});
-
-socket.on("newMessage", (messageData, newCount) => {
-    addMessage(messageData);
 });
 
 // If player enter/exit the room
 socket.on("roomChange", (rooms) => {
     const roomList = welcome.querySelector("ul");
     roomList.innerHTML = "";
-    rooms.forEach(room => {
-        const roomListSpan = createElement("span", room, "font-weight:bold; display:block;");
+    rooms.forEach((room) => {
+        const roomListSpan = createElement(
+            "span",
+            room,
+            "font-weight:bold; display:block;"
+        );
         roomList.appendChild(roomListSpan);
-    })
+    });
 });
-
-changeIdForm.addEventListener("submit", handleChangeIdSubmit);
-homeButton.addEventListener("click", handleHomeSubmit);
-form.addEventListener("submit", handleRoomSubmit);

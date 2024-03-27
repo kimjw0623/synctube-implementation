@@ -28,7 +28,6 @@ function createElement(type, text, style, color=null) {
     return newElement;
 }
 
-
 function onPlayerReady() {
     isPlayerReady = true;
 }
@@ -51,7 +50,7 @@ function reportCurrentTime() {
                 lastReportedTime = currentTime;
             }
         }
-    }, 2000);
+    }, 1000);
 }
 
 function shuffleComments() {
@@ -211,6 +210,47 @@ function handleDirectPlaylist(videoId) {
     sendCurrentPlaylist(sortableList);
 }
 
+function createVideoListItem(videoItem) {
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+    
+    const img = document.createElement("img");
+    img.src = videoItem.thumbnailUrl;
+    img.alt = videoItem.id;
+    img.style.cssText = 'width:100px; height:auto; float:left;';
+
+    const videoMetadataSpan = document.createElement("div");
+    videoMetadataSpan.hidden = true;
+    videoMetadataSpan.textContent = JSON.stringify(videoItem);
+    const titleSpan = createElement("span", videoItem.title, "font-weight:bold; display:block; margin-left:110px;");
+    const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px;");
+    const durationSpan = createElement("span", videoItem.duration, "display:block; margin-left:110px;");
+    const applicantSpan = createElement("span", `Requested by: ${videoItem.applicant}`, "display:block; margin-left:110px;", videoItem.applicantColor);
+    const deleteButton = createElement("button", "Delete", "float:right;");
+    deleteButton.classList.add("material-symbols-outlined");
+    deleteButton.onclick = function() {
+        li.remove();
+        sendCurrentPlaylist(sortableList);
+    };
+    const playButton = createElement("button", "arrow_right", "float:right;");
+    playButton.classList.add("material-symbols-outlined");
+    playButton.onclick = function () {
+        li.remove();
+        handleDirectPlaylist(img.alt);
+    };
+
+    li.appendChild(img);
+    li.appendChild(videoMetadataSpan);
+    li.appendChild(titleSpan);
+    li.appendChild(durationSpan);
+    li.appendChild(channelSpan);
+    li.appendChild(applicantSpan);
+    li.appendChild(deleteButton);
+    li.appendChild(playButton)
+
+    return li;
+}
+
 socket.on("videoUrlChange", (data, videoComment) => {
     blockStateChange(function () {
         currentTime = 0;
@@ -305,47 +345,6 @@ socket.on("SyncTime", data => {
         // }
     },10);
 });
-
-function createVideoListItem(videoItem) {
-    const li = document.createElement("li");
-    li.className = "list-group-item";
-    
-    const img = document.createElement("img");
-    img.src = videoItem.thumbnailUrl;
-    img.alt = videoItem.id;
-    img.style.cssText = 'width:100px; height:auto; float:left;';
-
-    const videoMetadataSpan = document.createElement("div");
-    videoMetadataSpan.hidden = true;
-    videoMetadataSpan.textContent = JSON.stringify(videoItem);
-    const titleSpan = createElement("span", videoItem.title, "font-weight:bold; display:block; margin-left:110px;");
-    const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px;");
-    const durationSpan = createElement("span", videoItem.duration, "display:block; margin-left:110px;");
-    const applicantSpan = createElement("span", `Requested by: ${videoItem.applicant}`, "display:block; margin-left:110px;", videoItem.applicantColor);
-    const deleteButton = createElement("button", "Delete", "float:right;");
-    deleteButton.classList.add("material-symbols-outlined");
-    deleteButton.onclick = function() {
-        li.remove();
-        sendCurrentPlaylist(sortableList);
-    };
-    const playButton = createElement("button", "arrow_right", "float:right;");
-    playButton.classList.add("material-symbols-outlined");
-    playButton.onclick = function () {
-        li.remove();
-        handleDirectPlaylist(img.alt);
-    };
-
-    li.appendChild(img);
-    li.appendChild(videoMetadataSpan);
-    li.appendChild(titleSpan);
-    li.appendChild(durationSpan);
-    li.appendChild(channelSpan);
-    li.appendChild(applicantSpan);
-    li.appendChild(deleteButton);
-    li.appendChild(playButton)
-
-    return li;
-}
 
 socket.on("updatePlaylist", (data) => {
     const playlistList = playlistForm.querySelector("ol");

@@ -78,14 +78,6 @@ function countRoom(roomName){
 }
 
 function removeUserFromList(roomUserList, targetNickname) {
-    // remove user from userList
-    // if (roomUserList) {
-    //     const idx = roomUserList.indexOf(nickname);
-    //     if (idx > -1) roomUserList.splice(idx, 1);
-    // }
-    if (!roomUserList) {
-        return [], "#fff"
-    }
     let userList = [];
     let targetColor = "#fff";
     roomUserList.forEach(item => {
