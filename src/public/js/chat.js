@@ -1,15 +1,15 @@
-
-class ChatClient {
+class Client {
     constructor(socket) {
         this.socket = socket;
         this.chatContainer = document.getElementById("room");
         this.chatForm = document.getElementById("chatForm");
         this.changeIdForm = document.getElementById("changeId");
-        // Method binding
+        this.userList = document.getElementById("userList");
+
         this.handleMessageSubmit = this.handleMessageSubmit.bind(this);
         this.handleChangeIdSubmit = this.handleChangeIdSubmit.bind(this);
         this.setupEventListeners();
-        console.log(this.socket);
+        this.setupUI();
     }
 
     setupUI() {
@@ -17,7 +17,6 @@ class ChatClient {
     }
 
     setupEventListeners() {
-        console.log("1q23a")
         this.socket.on("updateUserList", (users, user) => {
             const h3 = room.querySelector("h3");
             loadUserList(users);
@@ -69,6 +68,25 @@ class ChatClient {
             li.appendChild(firstWordElement);
             li.appendChild(document.createTextNode(msg.content));
             ul.appendChild(li);
+        });
+    }
+
+    loadUserList(data) {
+        const oldUsers = this.userList.querySelectorAll("li");
+        oldUsers.forEach((user) => {
+            user.remove();
+        });
+        data.forEach((user) => {
+            console.log(user);
+            const li = document.createElement("li");
+            const span = createElement(
+                "span",
+                user.nickname,
+                "font-size: 15px",
+                user.color
+            );
+            li.appendChild(span);
+            this.userList.appendChild(li);
         });
     }
 

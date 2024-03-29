@@ -10,7 +10,6 @@ const homeButton = document.getElementById("home");
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
-const userList = document.getElementById("userList");
 
 function setupEventListeners() {
     homeButton.addEventListener("click", handleHomeSubmit);
@@ -24,38 +23,55 @@ function initUI() {
     room.hidden = true;
 }
 
+function initSocketListener() {
+    socket.on("issueToken", (token, tokenNickname) => {
+        nickname = tokenNickname;
+        localStorage.setItem("token", token);
+    });
+
+    socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
+        console.log("Reconnected with token.");
+        const chatColor = localStorage.getItem("chatColor");
+        roomName = room;
+        nickname = tokenNickname;
+        data = {
+            roomName: roomName,
+            userColor: chatColor,
+        };
+        socket.emit("enterRoom", data, socket.id, showRoom);
+    });
+
+    socket.on("welcome", (users, user, messages) => {
+        const h3 = room.querySelector("h3");
+
+        client.loadMessage(messages);
+        client.loadUserList(users);
+        //addMessage(`${user} joined!`);
+    });
+
+    // Reload roomlist if any player enters/exits the room
+    socket.on("roomChange", (rooms) => {
+        const roomList = welcome.querySelector("ul");
+        roomList.innerHTML = "";
+        rooms.forEach((room) => {
+            const roomListSpan = createElement(
+                "span",
+                room,
+                "font-weight:bold; display:block;"
+            );
+            roomList.appendChild(roomListSpan);
+        });
+    });
+}
+
 function initialize() {
     setupEventListeners();
     initUI();
+    initSocketListener();
 }
 
 initialize();
-let chatClient;
-
-function getRandomColorHex() {
-    const randomColor = () => Math.floor(Math.random() * 256).toString(16);
-    const color = `#${randomColor()}${randomColor()}${randomColor()}`;
-    return color.length < 7 ? color + "0" : color;
-}
-
-function loadUserList(data) {
-    const oldUsers = userList.querySelectorAll("li");
-    oldUsers.forEach((user) => {
-        user.remove();
-    });
-    data.forEach((user) => {
-        console.log(user);
-        const li = document.createElement("li");
-        const span = createElement(
-            "span",
-            user.nickname,
-            "font-size: 15px",
-            user.color
-        );
-        li.appendChild(span);
-        userList.appendChild(li);
-    });
-}
+const client = new Client(socket);
 
 function showRoom() {
     welcome.hidden = true;
@@ -64,8 +80,6 @@ function showRoom() {
     //h3.innerText = `Room ${roomName}`;
     //const msgForm = room.querySelector("#msg");
     const nameForm = room.querySelector("#name");
-    // const chatForm = document.getElementById("chatForm");
-    // chatForm.addEventListener("submit", handleMessageSubmit);
     // playlist, chat
     document.getElementById("playlistForm").hidden = false;
     // document.getElementById("room").hidden = true;
@@ -110,41 +124,8 @@ function handleHomeSubmit() {
     document.getElementById("welcome").hidden = false;
 }
 
-socket.on("issueToken", (token, tokenNickname) => {
-    nickname = tokenNickname;
-    localStorage.setItem("token", token);
-});
-
-socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
-    console.log("Reconnected with token.");
-    const chatColor = localStorage.getItem("chatColor");
-    roomName = room;
-    nickname = tokenNickname;
-    data = {
-        roomName: roomName,
-        userColor: chatColor,
-    };
-    socket.emit("enterRoom", data, socket.id, showRoom);
-});
-
-socket.on("welcome", (users, user, messages) => {
-    const h3 = room.querySelector("h3");
-    chatClient = new ChatClient(socket);
-    chatClient.loadMessage(messages);
-    loadUserList(users);
-    //addMessage(`${user} joined!`);
-});
-
-// If player enter/exit the room
-socket.on("roomChange", (rooms) => {
-    const roomList = welcome.querySelector("ul");
-    roomList.innerHTML = "";
-    rooms.forEach((room) => {
-        const roomListSpan = createElement(
-            "span",
-            room,
-            "font-weight:bold; display:block;"
-        );
-        roomList.appendChild(roomListSpan);
-    });
-});
+function getRandomColorHex() {
+    const randomColor = () => Math.floor(Math.random() * 256).toString(16);
+    const color = `#${randomColor()}${randomColor()}${randomColor()}`;
+    return color.length < 7 ? color + "0" : color;
+}
