@@ -23,7 +23,7 @@ function initUI() {
     room.hidden = true;
 }
 
-function initSocketListener() {
+function initRoomSocketListener() {
     socket.on("issueToken", (token, tokenNickname) => {
         nickname = tokenNickname;
         localStorage.setItem("token", token);
@@ -67,11 +67,13 @@ function initSocketListener() {
 function initialize() {
     setupEventListeners();
     initUI();
-    initSocketListener();
+    initRoomSocketListener();
+    initPlayerSocketListener();
 }
 
 initialize();
 const client = new Client(socket);
+const videoPlayer = new VideoPlayer(socket, roomName);
 
 function showRoom() {
     welcome.hidden = true;
@@ -83,8 +85,8 @@ function showRoom() {
     // playlist, chat
     document.getElementById("playlistForm").hidden = false;
     // document.getElementById("room").hidden = true;
-    handleSwitchChatPlaylist();
-    handleSortablePlaylist();
+    videoPlayer.handleSwitchChatPlaylist();
+    videoPlayer.handleSortablePlaylist();
 }
 
 function handleRoomSubmit(event) {

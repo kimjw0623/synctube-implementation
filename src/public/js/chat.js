@@ -19,7 +19,7 @@ class Client {
     setupEventListeners() {
         this.socket.on("updateUserList", (users, user) => {
             const h3 = room.querySelector("h3");
-            loadUserList(users);
+            this.loadUserList(users);
             //addMessage(`${user} Bye!`);
         });
 

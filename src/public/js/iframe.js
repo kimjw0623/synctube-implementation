@@ -21,5 +21,5 @@ function onYouTubeIframeAPIReady() {
 }
 
 window.addEventListener('resize', function() {
-    updatePlayerSize();
+    videoPlayer.updatePlayerSize();
 });
