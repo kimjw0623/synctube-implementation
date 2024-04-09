@@ -10,7 +10,7 @@ const clientDelay = 0.5;
 let allComments = [];
 let commentIntervalId = null;
 
-function initPlayerSocketListener() {
+function initPlayerSocketListener(socket, videoPlayer) {
     socket.on("videoUrlChange", (data, videoComment) => {
         videoPlayer.blockStateChange(function () {
             videoPlayer.currentTime = 0;

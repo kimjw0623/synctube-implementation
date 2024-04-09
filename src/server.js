@@ -253,7 +253,6 @@ function connectionSocketListeners(socket) {
         wsServer.sockets.emit("roomChange", publicRooms());
         const result = removeUserFromList(roomUser[roomName], socket.nickname);
         roomUser[roomName] = result.userList;
-        socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("disconnect", () => {
         console.log("exit!")
@@ -265,7 +264,6 @@ function connectionSocketListeners(socket) {
         wsServer.sockets.emit("roomChange", publicRooms());
         const result = removeUserFromList(roomUser[roomName], socket.nickname);
         roomUser[roomName] = result.userList;
-        socket.to(roomName).emit("bye", roomUser[roomName], socket.nickname);
     });
     socket.on("newMessage", (msg, room, chatColor, done) => {
         const nickname = socket.nickname
@@ -296,6 +294,8 @@ function playerSocketListeners(socket) {
             wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
         }
         else {// if (serverState.playerState !== data.playerState){
+            console.log("asddd")
+            console.log(data.room)
             wsServer.to(data.room).emit("stateChange", data); // Include emitter
             serverState.playerState = data.playerState;
         }

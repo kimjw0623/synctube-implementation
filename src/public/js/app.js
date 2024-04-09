@@ -23,7 +23,7 @@ function initUI() {
     room.hidden = true;
 }
 
-function initRoomSocketListener() {
+function initRoomSocketListener(socket) {
     socket.on("issueToken", (token, tokenNickname) => {
         nickname = tokenNickname;
         localStorage.setItem("token", token);
@@ -39,11 +39,14 @@ function initRoomSocketListener() {
             userColor: chatColor,
         };
         socket.emit("enterRoom", data, socket.id, showRoom);
+        videoPlayer = new VideoPlayer(socket, roomName);
+        initPlayerSocketListener(socket,videoPlayer);
     });
 
     socket.on("welcome", (users, user, messages) => {
         const h3 = room.querySelector("h3");
-
+        videoPlayer = new VideoPlayer(socket, roomName);
+        initPlayerSocketListener(socket,videoPlayer);
         client.loadMessage(messages);
         client.loadUserList(users);
         //addMessage(`${user} joined!`);
@@ -67,13 +70,12 @@ function initRoomSocketListener() {
 function initialize() {
     setupEventListeners();
     initUI();
-    initRoomSocketListener();
-    initPlayerSocketListener();
 }
 
 initialize();
 const client = new Client(socket);
-const videoPlayer = new VideoPlayer(socket, roomName);
+let videoPlayer;
+initRoomSocketListener(socket);
 
 function showRoom() {
     welcome.hidden = true;
@@ -110,20 +112,25 @@ function handleRoomSubmit(event) {
 
 function handleHomeSubmit() {
     // Exit room only (maintain socket Object; only available at server)
-    socket.emit("leaveRoom", roomName);
-    localStorage.removeItem("token");
-    localStorage.removeItem("chatColor");
-    isStateChangeEvent = false;
-    player.stopVideo();
-    if (commentIntervalId !== null) {
-        clearInterval(commentIntervalId);
+    function leaveRoom() {
+        socket.emit("leaveRoom", roomName);
+        localStorage.removeItem("token");
+        localStorage.removeItem("chatColor");
+        player.stopVideo();
+        if (VideoPlayer.commentIntervalId !== null) {
+            clearInterval(VideoPlayer.commentIntervalId);
+        }
+        // UI
+        if (VideoPlayer.syncIntervalId !== null) {
+            clearInterval(VideoPlayer.syncIntervalId);
+        }
+        room.hidden = true;
+        document.getElementById("main").style.display = "none";
+        appPlayer.style.display = "none";
+        playlistChat.style.display = "block";
+        document.getElementById("welcome").hidden = false;
     }
-    // UI
-    room.hidden = true;
-    document.getElementById("main").style.display = "none";
-    appPlayer.style.display = "none";
-    playlistChat.style.display = "block";
-    document.getElementById("welcome").hidden = false;
+    videoPlayer.blockStateChange(leaveRoom, 2000);
 }
 
 function getRandomColorHex() {

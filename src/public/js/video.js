@@ -7,6 +7,7 @@ class VideoPlayer{
         this.lastReportedTime = 0;
         this.isSyncTime = false;
         this.commentIntervalId = null;
+        this.syncIntervalId = null;
         this.allComments = [];
         this.isStateChangeEvent = true;
         this.appPlayer = document.getElementById("videoUrl");
@@ -33,13 +34,13 @@ class VideoPlayer{
     }
 
     reportCurrentTime() {
-        setInterval(() => {
+        this.syncIntervalId = setInterval(() => {
             const currentTime = player.getCurrentTime();
-            if (this.isSyncTime && Math.abs(currentTime - this.lastReportedTime) >= 1) {
+            if (this.socket.connected && this.isSyncTime && Math.abs(currentTime - this.lastReportedTime) >= 1) {
                 this.socket.emit("syncTime", this.roomName, currentTime);
                 this.lastReportedTime = currentTime;
             }
-        }, 1000);
+        }, 2000);
     }
 
     shuffleComments() {
