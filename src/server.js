@@ -161,6 +161,7 @@ function authAndJoinRoom(socket) {
         jwt.verify(token, secretKey, (err, decoded) => {
             if (err) {
                 console.error('Token verification failed:', err);
+                socket.emit("removeToken");
                 return;
             }
             if (roomName) {
@@ -294,8 +295,6 @@ function playerSocketListeners(socket) {
             wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
         }
         else {// if (serverState.playerState !== data.playerState){
-            console.log("asddd")
-            console.log(data.room)
             wsServer.to(data.room).emit("stateChange", data); // Include emitter
             serverState.playerState = data.playerState;
         }

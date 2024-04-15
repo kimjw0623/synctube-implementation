@@ -65,6 +65,11 @@ function initRoomSocketListener(socket) {
             roomList.appendChild(roomListSpan);
         });
     });
+
+    // Remove invalid localstorage token
+    socket.on("removeToken", () => {
+        localStorage.removeItem("token");
+    });
 }
 
 function initialize() {
