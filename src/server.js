@@ -252,8 +252,10 @@ function connectionSocketListeners(socket) {
     socket.on("disconnecting", () => {
         const roomName = socket.roomName;
         wsServer.sockets.emit("roomChange", publicRooms());
-        const result = removeUserFromList(roomUser[roomName], socket.nickname);
-        roomUser[roomName] = result.userList;
+        if (roomName) {
+            const result = removeUserFromList(roomUser[roomName], socket.nickname);
+            roomUser[roomName] = result.userList;
+        }
     });
     socket.on("disconnect", () => {
         console.log("exit!")

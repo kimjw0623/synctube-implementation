@@ -1,6 +1,5 @@
 
 let isStateChangeEvent = false;
-let lastReportedTime = 0;
 let currentTime = 0;
 let isPlayerReady = false;
 let isSyncTime = false;
@@ -140,8 +139,8 @@ function createElement(type, text, style, color = null) {
 }
 
 function onPlayerStateChange(event) {
-    console.log(`${event.data}`);
     if (videoPlayer.isStateChangeEvent && event.data !== YT.PlayerState.BUFFERING) {
+        console.log(`${event.data}`);
         console.log(`Emit change!: ${event.data}`);
         videoPlayer.socket.emit("stateChange", {
             room: videoPlayer.roomName,

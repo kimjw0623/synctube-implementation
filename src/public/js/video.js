@@ -33,16 +33,6 @@ class VideoPlayer{
         }
     }
 
-    reportCurrentTime() {
-        this.syncIntervalId = setInterval(() => {
-            const currentTime = player.getCurrentTime();
-            if (this.socket.connected && this.isSyncTime && Math.abs(currentTime - this.lastReportedTime) >= 1) {
-                this.socket.emit("syncTime", this.roomName, currentTime);
-                this.lastReportedTime = currentTime;
-            }
-        }, 2000);
-    }
-
     shuffleComments() {
         console.log("assda")
         clearInterval(this.commentIntervalId);
