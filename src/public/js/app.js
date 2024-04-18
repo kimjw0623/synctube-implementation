@@ -84,16 +84,26 @@ function initialize() {
 initialize();
 const client = new Client(socket);
 initRoomSocketListener(socket);
-console.log(videoPlayer.syncIntervalId, "sync");
 
+// MARK: reportCurrentTime
 function reportCurrentTime() {
     syncIntervalId = setInterval(() => {
-        const currentTime = player.getCurrentTime();
-        if (Math.abs(currentTime - lastReportedTime) >= 1) {
-            socket.emit("syncTime", roomName, currentTime);
-            lastReportedTime = currentTime;
+        currentTime = player.getCurrentTime();
+        if (isStateChangeEvent) {
+            if (Math.abs(currentTime - lastReportedTime) >= 0.3) {
+                socket.emit("syncTime", roomName, currentTime);
+                lastReportedTime = currentTime;
+            }
         }
-    }, 2000);
+    }, 200);
+}
+
+function blockStateChange(targetFunction, timeOut = 200) {
+    isStateChangeEvent = false;
+    targetFunction();
+    setTimeout(() => {
+        isStateChangeEvent = true;
+    }, timeOut);
 }
 
 function showRoom() {
@@ -127,14 +137,14 @@ function handleRoomSubmit(event) {
     };
     socket.emit("enterRoom", data, socket.id, showRoom);
     // Enable onPlayerStateChange event handler
-    videoPlayer.isStateChangeEvent = true;
+    isStateChangeEvent = true;
     input.value = "";
 }
 
 function handleHomeSubmit() {
     // Exit room only (maintain socket Object; only available at server)
     // Disable onPlayerStateChange event handler
-    videoPlayer.isStateChangeEvent = false;
+    isStateChangeEvent = false;
     console.log(syncIntervalId, "sync");
     if (videoPlayer.commentIntervalId !== null) {
         clearInterval(videoPlayer.commentIntervalId);

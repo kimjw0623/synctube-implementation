@@ -285,9 +285,9 @@ function connectionSocketListeners(socket) {
 
 function playerSocketListeners(socket) {
     socket.on("stateChange", async (data) => {
-        const roomName = socket.roomName
+        const roomName = socket.roomName;
         const serverState = roomPlayerState[roomName];
-        serverState.playerTime = data.currentTime;
+        serverState.playerTime = data.playerTime;
         if (isVideoEnd(serverState.currentVideo.duration,serverState.playerTime) ||
             (data.playerState === 0 && serverState.playlist.length != 0)) { // video ends
             serverState.playerState = data.playerState;
@@ -296,21 +296,23 @@ function playerSocketListeners(socket) {
             wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
             wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
         }
-        else {// if (serverState.playerState !== data.playerState){
+        else if (data.playerState !== -1){
             wsServer.to(data.room).emit("stateChange", data); // Include emitter
             serverState.playerState = data.playerState;
+            serverState.playerTime = data.playerTime;
+            console.log("Playertime:",serverState.playerTime, serverState.playerState, socket.nickname);
         }
     });
-    socket.on("syncTime", (room, currentTime) => {
+    socket.on("syncTime", (room, playerTime) => {
         // update serverTime
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
-        serverState.playerTime = currentTime;
+        serverState.playerTime = playerTime;
         const data = {
-            currentTime: currentTime,
+            playerTime: playerTime,
             playerState: serverState.playerState
         };
-        wsServer.to(room).emit("SyncTime", data);
+        // wsServer.to(room).emit("SyncTime", data);
     });
     socket.on("videoUrlChange", async (data) => {
         const roomName = socket.roomName

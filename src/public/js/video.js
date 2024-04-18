@@ -9,7 +9,6 @@ class VideoPlayer{
         this.commentIntervalId = null;
         this.syncIntervalId = null;
         this.allComments = [];
-        this.isStateChangeEvent = true;
         this.appPlayer = document.getElementById("videoUrl");
         this.playButton = appPlayer.querySelector("#playButton");
         this.addPlaylistButton = document.querySelector("#addButton");
@@ -56,14 +55,6 @@ class VideoPlayer{
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
-    }
-
-    blockStateChange(targetFunction, timeOut = 200) {
-        this.isStateChangeEvent = false;
-        targetFunction();
-        setTimeout(() => {
-            this.isStateChangeEvent = true;
-        }, timeOut);
     }
 
     listComments(videoComments) {

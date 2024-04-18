@@ -11,8 +11,8 @@ let commentIntervalId = null;
 
 function initPlayerSocketListener(socket, videoPlayer) {
     socket.on("videoUrlChange", (data, videoComment) => {
-        videoPlayer.blockStateChange(function () {
-            videoPlayer.currentTime = 0;
+        blockStateChange(function () {
+            currentTime = 0;
             videoPlayer.allComments = videoComment.items;
             videoPlayer.shuffleComments();
             videoPlayer.setVideoTitle(data);
@@ -22,28 +22,36 @@ function initPlayerSocketListener(socket, videoPlayer) {
         });
     });
 
+    // MARK: Initstate
     socket.on("initState", (data, videoComment) => {
         // initialize player state with server data
+        const offset = 0.3;
+        let loadStartTime = performance.now();
         const waitForPlayerReady = setInterval(() => {
             if (isPlayerReady) {
-                clearInterval(waitForPlayerReady);
-                videoPlayer.blockStateChange(function () {
-                    videoPlayer.allComments = videoComment.items;
-                    videoPlayer.shuffleComments();
-                    setTimeout(function () {
-                        player.loadVideoById(mediaContentUrl = data.currentVideo.id, startSeconds = data.playerTime);
-                        if (data.playerState === YT.PlayerState.PLAYING) {
-                            player.playVideo();
-                        } else if (data.playerState === YT.PlayerState.PAUSED) {
-                            player.pauseVideo();
-                        }
-                    }, 50);
-                });
+                let loadTimeInterval = performance.now() - loadStartTime;
+                console.log(loadTimeInterval);
+                player.loadVideoById(mediaContentUrl = data.currentVideo.id, data.playerTime+loadTimeInterval*0.001+offset);
+                isStateChangeEvent = false;
+                setTimeout(function () {
+                    if (data.playerState === YT.PlayerState.PLAYING) {
+                        player.playVideo();
+                    } else if (data.playerState === YT.PlayerState.PAUSED) {
+                        player.pauseVideo();
+                    }
+                }, 50);
+                lastReportedTime = data.playerTime + loadTimeInterval * 0.001 + offset;
+                
+                videoPlayer.allComments = videoComment.items;
+                videoPlayer.shuffleComments();
+                
                 document.getElementById("main").style.display = "";
                 appPlayer.style.display = "";
                 playlistChat.style.display = "";
-                videoPlayer.isSyncTime = true;
-                videoPlayer.reportCurrentTime();
+                
+                
+                // videoPlayer.isSyncTime = true;
+                reportCurrentTime();
                 videoPlayer.setVideoTitle(data);
                 // Load choice
                 const optionValue = localStorage.getItem("switchOption");
@@ -67,15 +75,19 @@ function initPlayerSocketListener(socket, videoPlayer) {
                     }
                 }
                 console.log("init done!");
+
+                setTimeout(function () { isStateChangeEvent = true; }, 1000);
+                clearInterval(waitForPlayerReady);
             }
         }, 100);
     });
 
+    // MARK: StateChange
     socket.on("stateChange", data => {
-        const serverTime = data.currentTime;
+        const serverTime = data.playerTime;
         const serverStatus = data.playerState;
         console.log("get stateChange!", serverStatus);
-        videoPlayer.blockStateChange(function () {
+        blockStateChange(function () {
             if (Math.abs(serverTime - player.getCurrentTime()) > clientDelay) {
                 player.seekTo(serverTime, true);
             }
@@ -85,24 +97,27 @@ function initPlayerSocketListener(socket, videoPlayer) {
             else if (serverStatus === YT.PlayerState.PAUSED) {
                 player.pauseVideo();
             }
-        }, 10);
+        }, 200);
     });
 
+    // MARK: Synctime
     socket.on("SyncTime", data => {
-        const serverTime = data.currentTime;
+        const serverTime = data.playerTime;
         const serverStatus = data.playerState;
-        console.log(`get ${serverTime}`);
-        videoPlayer.blockStateChange(function () {
-            if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
-                player.seekTo(serverTime, true);
-            }
-            // if (serverStatus === YT.PlayerState.PLAYING) {
-            //     player.playVideo();
-            // }
-            // else if (serverStatus === YT.PlayerState.PAUSED) {
-            //     player.pauseVideo();
-            // }
-        }, 10);
+        console.log(`Synctime: get ${serverTime}`);
+        if (isPlayerReady) {
+            blockStateChange(function () {
+                if (Math.abs(serverTime - player.getCurrentTime()) > 0.25) {
+                    player.seekTo(serverTime, true);
+                }
+                // if (serverStatus === YT.PlayerState.PLAYING) {
+                //     player.playVideo();
+                // }
+                // else if (serverStatus === YT.PlayerState.PAUSED) {
+                //     player.pauseVideo();
+                // }
+            }, 100);
+        }
     });
 
     socket.on("updatePlaylist", (data) => {
@@ -139,14 +154,14 @@ function createElement(type, text, style, color = null) {
 }
 
 function onPlayerStateChange(event) {
-    if (videoPlayer.isStateChangeEvent && event.data !== YT.PlayerState.BUFFERING) {
-        console.log(`${event.data}`);
-        console.log(`Emit change!: ${event.data}`);
-        videoPlayer.socket.emit("stateChange", {
-            room: videoPlayer.roomName,
-            playerState: event.data,
-            currentTime: player.getCurrentTime(),
-        });
+    if (isStateChangeEvent && event.data !== YT.PlayerState.BUFFERING) {
+            console.log(`${event.data}`);
+            console.log(`Emit change!: ${event.data}`);
+            videoPlayer.socket.emit("stateChange", {
+                room: videoPlayer.roomName,
+                playerState: event.data,
+                playerTime: player.getCurrentTime(),
+            });
     }
 }
 
