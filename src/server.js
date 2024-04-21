@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
 import * as utils from "./util/utils.js";
+import Database from "better-sqlite3";
 
 dotenv.config();
 
@@ -358,3 +359,5 @@ const ipAddr = process.env.IP_ADDR || "0.0.0.0";
 httpServer.listen(port, ipAddr, () => {
     console.log(`Server listening on http://localhost:${port}`);
 });
+const db = new Database("./file.db");
+db.pragma("journal_mode = WAL");
