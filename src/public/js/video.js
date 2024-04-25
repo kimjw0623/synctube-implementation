@@ -58,7 +58,6 @@ class VideoPlayer{
     }
 
     listComments(videoComments) {
-        //const commentDiv = document.querySelector('.comment-section');
         const commentsUl = this.commentDiv.querySelector("ul");
         commentsUl.innerHTML = '';
         videoComments.forEach(commentItem => {
@@ -181,11 +180,13 @@ class VideoPlayer{
         const videoMetadataSpan = document.createElement("div");
         videoMetadataSpan.hidden = true;
         videoMetadataSpan.textContent = JSON.stringify(videoItem);
+        
         const titleSpan = createElement("span", videoItem.title, "font-weight:bold; display:block; margin-left:110px;");
         const channelSpan = createElement("span", videoItem.channelTitle, "margin-left:10px;");
         const durationSpan = createElement("span", videoItem.duration, "display:block; margin-left:110px;");
         const applicantSpan = createElement("span", `Requested by: ${videoItem.applicant}`, "display:block; margin-left:110px;", videoItem.applicantColor);
         const deleteButton = createElement("button", "Delete", "float:right;");
+
         deleteButton.classList.add("material-symbols-outlined");
         deleteButton.onclick = function() {
             li.remove();
@@ -209,5 +210,4 @@ class VideoPlayer{
     
         return li;
     }
-
 }

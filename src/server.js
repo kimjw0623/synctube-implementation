@@ -20,6 +20,9 @@ const wsServer = new Server(httpServer, {
     },
 });
 
+// TODO: move filename to .env
+const db = new Database("./sqlite/db1.db", { verbose: console.log });
+db.pragma("journal_mode = WAL");
 // Application Settings
 app.set("view engine", "pug");
 app.set("views", "./src/views");
@@ -158,6 +161,7 @@ async function getMetadataFromVideoId(data) {
 function authAndJoinRoom(socket) {
     const token = socket.handshake.query.token
     if (token) {
+        // Check token is in the User:user_token
         const roomName = tokenRoomDict[token]
         jwt.verify(token, secretKey, (err, decoded) => {
             if (err) {
@@ -178,18 +182,30 @@ function authAndJoinRoom(socket) {
     }
 }
 
+// Do SELECT from DB table
+function selectRowFromDB(table, column, value) {
+    const selectOne = db.prepare(`SELECT * FROM ${table} WHERE ${column} = ?`);
+    const result = selectOne.get(value);
+    return result
+}
+
 function connectionSocketListeners(socket) {
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
     socket.on("requestToken", (roomName) => {
-        // Give token and nickname when enter room
+        // Give token and nickname when client newly enter room
         const nickname = generateUsername("", 0, 15);
+        const token = jwt.sign({ nickname: nickname }, secretKey, { expiresIn: '1d' });
+        // In memory
         socket.nickname = nickname;
-        const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
         socket.jwt = token;
         tokenNicknameDict[token] = nickname;
         tokenRoomDict[token] = roomName;
+        // In database
+        const insertUser = db.prepare(`INSERT INTO User (user_id, user_token) VALUES (?, ?)`);
+        insertUser.run(nickname, token);
+        
         wsServer.to(socket.id).emit('issueToken', token, nickname);
     });
     socket.on("changeUserId", (newNickname, oldNickname) => {
@@ -206,19 +222,38 @@ function connectionSocketListeners(socket) {
         tokenNicknameDict[socket.jwt] = newNickname;
         wsServer.to(roomName).emit("updateUserList", roomUser[roomName], newNickname);
     });
+    // When the user enters the room
     socket.on("enterRoom", async (data, socketId, done) => {
+        // Change: roomName to roomId
         const roomName = data.roomName;
         const chatColor = data.userColor;
         socket.roomName = roomName;
         // Join room and emit 
         socket.join(roomName);
         done();
+        // Check if the User exists in User table
+        const rowUser = selectRowFromDB("User", "room_id", roomName);
+        const userId = rowUser["user_id"] || false;
+        if (!userId) {
+            console.log("Invalid User!")
+            return
+        }
+        // Check if the room exists in Room table
+        const rowRoom = selectRowFromDB("Room", "room_id", roomName);
+        const roomId = rowUser["room_id"] || false;
+        // If room doesn't exist
+        if (!roomId) {
+            const insertRoom = db.prepare(`INSERT INTO Room (room_id, player_current_time, player_current_state) VALUES (?, ?, ?)`);
+            insertRoom.run(roomName, 0, 0);
+        }
+        const insertRoom_User = db.prepare(`INSERT INTO Room (user_id, room_id) VALUES (?, ?)`);
+        insertRoom_User.run(userId, roomName)
+
         if (!(roomName in roomMessage)) {
             console.log("First Message!", roomName);
             roomMessage[roomName] = [];
         }
         console.log(socket.nickname);
-
         if (!(roomName in roomUser)) { // First client in the room
             console.log("First user!", roomName);
             roomUser[roomName] = [{
@@ -359,5 +394,3 @@ const ipAddr = process.env.IP_ADDR || "0.0.0.0";
 httpServer.listen(port, ipAddr, () => {
     console.log(`Server listening on http://localhost:${port}`);
 });
-const db = new Database("./file.db");
-db.pragma("journal_mode = WAL");

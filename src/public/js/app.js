@@ -1,6 +1,4 @@
-let token = localStorage.getItem("token");
-let query = token ? { query: `token=${token}` } : {};
-let socket = io.connect("", query);
+
 let roomName = 1;
 let nickname = "Default Nickname";
 
@@ -80,6 +78,10 @@ function initialize() {
     setupEventListeners();
     initUI();
 }
+
+let token = localStorage.getItem("token");
+let query = token ? { query: `token=${token}` } : {};
+let socket = io.connect("", query);
 
 initialize();
 const client = new Client(socket);
