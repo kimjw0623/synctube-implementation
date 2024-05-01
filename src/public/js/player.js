@@ -74,6 +74,7 @@ function initPlayerSocketListener(socket, videoPlayer) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
                 }
+                client.loadMessage(messages);
                 console.log("init done!");
 
                 setTimeout(function () { isStateChangeEvent = true; }, 1000);

@@ -158,28 +158,50 @@ async function getMetadataFromVideoId(data) {
     }
 }
 
+// MARK: authAndJoinRoom
 function authAndJoinRoom(socket) {
     const token = socket.handshake.query.token
     if (token) {
         // Check token is in the User:user_token
-        const roomName = tokenRoomDict[token]
+        const rowUser = selectRowFromDB("User", "user_token", token);
+        if (rowUser === undefined) {
+            socket.emit("removeToken");
+            return
+        }
+        let query = db.prepare(`SELECT room_id FROM Room_User WHERE user_id='${rowUser["user_id"]}'`);
+        const rowRoomUser = query.all()[0];
+        if (rowRoomUser === undefined) {
+            socket.emit("removeToken");
+            return
+        }
+        const roomName = rowRoomUser.room_id;
+
         jwt.verify(token, secretKey, (err, decoded) => {
             if (err) {
                 console.error('Token verification failed:', err);
                 socket.emit("removeToken");
-                return;
+                return
             }
-            if (roomName) {
+            else if (roomName) {
                 socket.jwt = token;
-                socket.nickname = tokenNicknameDict[token];
-                socket.emit("enterRoomWithToken", roomName, tokenNicknameDict[token], roomMessage[roomName]);
+                socket.nickname = rowUser["user_id"];
+                // query = `SELECT user_nickname FROM User WHERE user_token='${token}'`
+                // const nickname = query.all()[0]
+                socket.emit("enterRoomWithToken", roomName, rowUser["user_nickname"]);
             }
             else {
                 console.log("unknown token!");
-                // throw new Error("Unknown token!");
+                socket.emit("removeToken");
+                return
             }
         });
     }
+}
+
+function getRandomColorHex() {
+    const randomColor = () => Math.floor(Math.random() * 256).toString(16);
+    const color = `#${randomColor()}${randomColor()}${randomColor()}`;
+    return color.length < 7 ? color + "0" : color;
 }
 
 // Do SELECT from DB table
@@ -193,20 +215,22 @@ function connectionSocketListeners(socket) {
     socket.onAny((event) => {
         console.log(`socket Event: ${event}`);
     });
+    // MARK: requestToken
     socket.on("requestToken", (roomName) => {
         // Give token and nickname when client newly enter room
-        const nickname = generateUsername("", 0, 15);
-        const token = jwt.sign({ nickname: nickname }, secretKey, { expiresIn: '1d' });
+        const userId = generateUsername("", 0, 15);
+        const userToken = jwt.sign({ userId: userId }, secretKey, { expiresIn: '1d' });
+        const userColor = getRandomColorHex();
         // In memory
-        socket.nickname = nickname;
-        socket.jwt = token;
-        tokenNicknameDict[token] = nickname;
-        tokenRoomDict[token] = roomName;
+        socket.nickname = userId;
+        socket.jwt = userToken;
+        // tokenNicknameDict[token] = nickname;
+        // tokenRoomDict[token] = roomName;
         // In database
-        const insertUser = db.prepare(`INSERT INTO User (user_id, user_token) VALUES (?, ?)`);
-        insertUser.run(nickname, token);
+        const insertUser = db.prepare(`INSERT INTO User (user_id, user_nickname, user_token, user_color) VALUES (?, ?, ?, ?)`);
+        insertUser.run(userId, userId, userToken, userColor);
         
-        wsServer.to(socket.id).emit('issueToken', token, nickname);
+        wsServer.to(socket.id).emit('issueToken', userToken, userId);
     });
     socket.on("changeUserId", (newNickname, oldNickname) => {
         const roomName = socket.roomName;
@@ -220,70 +244,74 @@ function connectionSocketListeners(socket) {
         socket.nickname = newNickname;
         // Update token-nickname dict
         tokenNicknameDict[socket.jwt] = newNickname;
-        wsServer.to(roomName).emit("updateUserList", roomUser[roomName], newNickname);
+        wsServer.to(roomName).emit("updateUserList", roomUser[roomName]);
     });
     // When the user enters the room
+    // MARK: enterRoom
     socket.on("enterRoom", async (data, socketId, done) => {
         // Change: roomName to roomId
-        const roomName = data.roomName;
+        const roomName = parseInt(data.roomName);
         const chatColor = data.userColor;
         socket.roomName = roomName;
         // Join room and emit 
         socket.join(roomName);
         done();
         // Check if the User exists in User table
-        const rowUser = selectRowFromDB("User", "room_id", roomName);
-        const userId = rowUser["user_id"] || false;
-        if (!userId) {
+        const rowUser = selectRowFromDB("User", "user_id", socket.nickname);
+        if (rowUser === undefined) {
             console.log("Invalid User!")
             return
         }
+
         // Check if the room exists in Room table
-        const rowRoom = selectRowFromDB("Room", "room_id", roomName);
-        const roomId = rowUser["room_id"] || false;
-        // If room doesn't exist
-        if (!roomId) {
+        let rowRoom = selectRowFromDB("Room", "room_id", roomName);
+        // If room doesn't exist, initialize
+        if (rowRoom === undefined) {
             const insertRoom = db.prepare(`INSERT INTO Room (room_id, player_current_time, player_current_state) VALUES (?, ?, ?)`);
             insertRoom.run(roomName, 0, 0);
         }
-        const insertRoom_User = db.prepare(`INSERT INTO Room (user_id, room_id) VALUES (?, ?)`);
-        insertRoom_User.run(userId, roomName)
 
-        if (!(roomName in roomMessage)) {
-            console.log("First Message!", roomName);
-            roomMessage[roomName] = [];
+        // Check if the Room_User row exists
+        const queryRoomUser = db.prepare(`SELECT * FROM Room_User WHERE user_id='${rowUser["user_id"]}' AND room_id='${roomName}'`);
+        const rowRoomUser = queryRoomUser.all(); // queryRoomUser.get(value);
+        if (rowRoomUser.length === 0) {
+            const insertRoom_User = db.prepare(`INSERT INTO Room_User (user_id, room_id) VALUES (?, ?)`);
+            insertRoom_User.run(rowUser["user_id"], roomName)
         }
-        console.log(socket.nickname);
-        if (!(roomName in roomUser)) { // First client in the room
-            console.log("First user!", roomName);
-            roomUser[roomName] = [{
-                nickname: socket.nickname,
-                color: chatColor
-            }];
-            const serverState = {
-                currentVideo: {},
-                playerState: -1,
-                playerTime: 0,
-                playerVolume: 20,
-                playlist: []
-            };
-            roomPlayerState[roomName] = serverState;
-            roomPlayerState[roomName] = await initializeServer(roomPlayerState[roomName]);
+        
+        // Get all user_ids in the room
+        let query = db.prepare(`SELECT user_id FROM Room_User WHERE room_id='${roomName}' ORDER BY user_id`);
+        const users = query.all(); // [{user_id: 'user1234'}, ...]
+        // Get all messages in the room
+        query = db.prepare(`SELECT * FROM Chat WHERE room_id='${roomName}' ORDER BY timestamp`);
+        const chattings = query.all();
+        // Get all rooms in the room
+        query = db.prepare(`SELECT room_id,room_title FROM Room ORDER BY room_id`);
+        const roomList = query.all();
+        // Get room info
+        rowRoom = selectRowFromDB("Room", "room_id", roomName);
+        // Get comment of current video of the room
+        if (rowRoom["video_id"] === undefined) {
+            query = db.prepare(`SELECT * FROM Comment WHERE video_id='${rowRoom["video_id"]}'`);
+            const currentComments = query.all();
         }
-        else {
-            roomUser[roomName].push({
-                nickname: socket.nickname,
-                color: chatColor
-            });
-            roomUser[roomName].sort();
-        }
-        console.log(roomUser[roomName]);
-        wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
+        // Get playlist
+        query = db.prepare(`SELECT * FROM Playlist WHERE room_id=${roomName} ORDER BY video_order`);
+        const currentPlaylist = query.all();
+        
+        // update room list for all rooms
         wsServer.sockets.emit("roomChange", publicRooms());
+    
+        // MARK: TODO!!
+
+        // initialize room for the socket id
         const serverState = roomPlayerState[roomName];
-        const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
+        const videoInfo = await utils.readVideoDB(serverState.currentVideo.id); // TODO!
         wsServer.to(socketId).emit("initState", serverState, videoInfo.comment);
+        // update playlist with event ()
         wsServer.to(socketId).emit("updatePlaylist", serverState.playlist);
+        // update user list for the room
+        wsServer.to(roomName).emit("updateUserList", roomUser[roomName]);
     });
     socket.on("disconnecting", () => {
         const roomName = socket.roomName;

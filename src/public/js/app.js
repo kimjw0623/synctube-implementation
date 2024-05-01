@@ -31,7 +31,7 @@ function initRoomSocketListener(socket) {
         localStorage.setItem("token", token);
     });
 
-    socket.on("enterRoomWithToken", (room, tokenNickname, roomMessage) => {
+    socket.on("enterRoomWithToken", (room, tokenNickname) => {
         console.log("Reconnected with token.");
         const chatColor = localStorage.getItem("chatColor");
         roomName = room;
@@ -41,16 +41,16 @@ function initRoomSocketListener(socket) {
             userColor: chatColor,
         };
         socket.emit("enterRoom", data, socket.id, showRoom);
-        videoPlayer = new VideoPlayer(socket, roomName);
-        initPlayerSocketListener(socket,videoPlayer);
+        // videoPlayer = new VideoPlayer(socket, roomName);
+        // initPlayerSocketListener(socket,videoPlayer);
     });
 
     socket.on("welcome", (users, user, messages) => {
-        const h3 = room.querySelector("h3");
-        videoPlayer = new VideoPlayer(socket, roomName);
-        initPlayerSocketListener(socket,videoPlayer);
-        client.loadMessage(messages);
-        client.loadUserList(users);
+        // const h3 = room.querySelector("h3");
+        // videoPlayer = new VideoPlayer(socket, roomName);
+        // initPlayerSocketListener(socket,videoPlayer);
+        // client.loadMessage(messages);
+        // client.loadUserList(users);
         //addMessage(`${user} joined!`);
     });
 
@@ -86,6 +86,8 @@ let socket = io.connect("", query);
 initialize();
 const client = new Client(socket);
 initRoomSocketListener(socket);
+videoPlayer = new VideoPlayer(socket);
+initPlayerSocketListener(socket,videoPlayer);
 
 // MARK: reportCurrentTime
 function reportCurrentTime() {
@@ -126,6 +128,7 @@ function handleRoomSubmit(event) {
     event.preventDefault();
     const input = form.querySelector("input");
     roomName = input.value;
+    console.log("roomName: ",roomName)
     if (!localStorage.getItem("token")) {
         socket.emit("requestToken", roomName);
     }

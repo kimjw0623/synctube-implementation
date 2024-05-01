@@ -1,7 +1,6 @@
 class VideoPlayer{
-    constructor(socket, roomName) {
+    constructor(socket) {
         this.socket = socket;
-        this.roomName = roomName;
         this.playlistForm = document.getElementById("playlistForm");
         this.isPlayerReady = false;
         this.lastReportedTime = 0;
