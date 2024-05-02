@@ -21,6 +21,7 @@ class VideoPlayer{
         this.shuffleComments = this.shuffleComments.bind(this);
         this.playButton.addEventListener("click", this.handleVideoUrlSubmit);
         this.addPlaylistButton.addEventListener("click", this.handlePlaylistSubmit);
+        console.log("videoplayer init!");
     }
 
     updatePlayerSize() {
@@ -187,16 +188,17 @@ class VideoPlayer{
         const applicantSpan = createElement("span", `Requested by: ${videoItem.applicant}`, "display:block; margin-left:110px;", videoItem.applicantColor);
         const deleteButton = createElement("button", "Delete", "float:right;");
         deleteButton.classList.add("material-symbols-outlined");
-        deleteButton.onclick = function() {
+        deleteButton.onclick = function () {
+            const sortableList = document.getElementById("sortable-list");
             li.remove();
-            videoPlayer.sendCurrentPlaylist(sortableList);
-        };
+            this.sendCurrentPlaylist(sortableList);
+        }.bind(this);
         const playButton = createElement("button", "arrow_right", "float:right;");
         playButton.classList.add("material-symbols-outlined");
         playButton.onclick = function () {
             li.remove();
-            videoPlayer.handleDirectPlaylist(img.alt);
-        };
+            this.handleDirectPlaylist(img.alt);
+        }.bind(this);
     
         li.appendChild(img);
         li.appendChild(videoMetadataSpan);

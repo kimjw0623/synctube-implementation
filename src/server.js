@@ -45,8 +45,8 @@ const defaultRoom = "abc";
 const secretKey = process.env.SECRET_KEY || 'secretKey';
 
 async function initializeServer(serverState) {
-    const initVideo = "1EJcaxYMZzQ";
-    const initPlaylist = ["CRMOwaIkYSY","Po4AAWH8BAU","M7lc1UVf-VE"];
+    const initVideo = "Po4AAWH8BAU";
+    const initPlaylist = ["CRMOwaIkYSY"];
     await utils.insertVideoDB(initVideo);
     let videoInfo = await utils.readVideoDB(initVideo);
     serverState.currentVideo = parseVideoMetadata(videoInfo.metadata);
@@ -255,10 +255,19 @@ function connectionSocketListeners(socket) {
         if (roomName) {
             const result = removeUserFromList(roomUser[roomName], socket.nickname);
             roomUser[roomName] = result.userList;
+            wsServer.to(roomName).emit("updateUserList", result.userList);
         }
     });
     socket.on("disconnect", () => {
-        console.log("exit!")
+        console.log("exit!");
+        const roomName = socket.roomName;
+        wsServer.sockets.emit("roomChange", publicRooms());
+        if (roomName) {
+            const result = removeUserFromList(roomUser[roomName], socket.nickname);
+            roomUser[roomName] = result.userList;
+            wsServer.to(roomName).emit("updateUserList", result.userList);
+        }
+        
     });
     socket.on("leaveRoom", (roomName) => {
         socket.leave(roomName, () => {
@@ -267,6 +276,7 @@ function connectionSocketListeners(socket) {
         wsServer.sockets.emit("roomChange", publicRooms());
         const result = removeUserFromList(roomUser[roomName], socket.nickname);
         roomUser[roomName] = result.userList;
+        wsServer.to(roomName).emit("updateUserList", result.userList);
     });
     socket.on("newMessage", (msg, room, chatColor, done) => {
         const nickname = socket.nickname
@@ -337,11 +347,9 @@ function playerSocketListeners(socket) {
     socket.on("changePlaylist", async (idList, room) => {
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
-        if (idList.length !== 0) {
-            serverState.playlist = idList;
-            wsServer.to(room).emit("updatePlaylist", serverState.playlist);
-            console.log(serverState.playlist);
-        }
+        console.log(idList);
+        serverState.playlist = idList;
+        wsServer.to(room).emit("updatePlaylist", idList);
     });
 }
 

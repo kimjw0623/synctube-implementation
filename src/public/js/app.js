@@ -49,11 +49,13 @@ function initRoomSocketListener(socket) {
 
     socket.on("welcome", (users, user, messages) => {
         const h3 = room.querySelector("h3");
-        videoPlayer = new VideoPlayer(socket, roomName);
-        initPlayerSocketListener(socket,videoPlayer);
         client.loadMessage(messages);
         client.loadUserList(users);
-        //addMessage(`${user} joined!`);
+    });
+
+    // Update user list
+    socket.on("updateUserList", (users) => {
+        client.loadUserList(users);
     });
 
     // Reload roomlist if any player enters/exits the room
@@ -136,6 +138,8 @@ function handleRoomSubmit(event) {
         userColor: chatColor,
     };
     socket.emit("enterRoom", data, socket.id, showRoom);
+    videoPlayer = new VideoPlayer(socket, roomName);
+    initPlayerSocketListener(socket,videoPlayer);
     // Enable onPlayerStateChange event handler
     isStateChangeEvent = true;
     input.value = "";
