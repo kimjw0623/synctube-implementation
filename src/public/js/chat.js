@@ -35,9 +35,9 @@ class Client {
         const ul = this.chatContainer.querySelector("ul");
         const li = document.createElement("li");
 
-        if (msg.nickname === nickname) {
-            msg.nickname = "You";
-        }
+        // if (msg.nickname === nickname) {
+        //     msg.nickname = "You";
+        // }
 
         const firstWordElement = createElement(
             "span",
@@ -58,9 +58,9 @@ class Client {
         ul.innerHTML = ""; // Delete all elements in ul (delete old msg)
         msgs.forEach(msg => {
             const li = document.createElement("li");
-            if (msg.nickname === nickname) {
-                msg.nickname = "You";
-            }
+            // if (msg.nickname === nickname) {
+            //     msg.nickname = "You";
+            // }
             const firstWordElement = document.createElement("span");
             firstWordElement.style.color = msg.color;
             firstWordElement.textContent = msg.nickname + ": ";

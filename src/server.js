@@ -171,6 +171,7 @@ function authAndJoinRoom(socket) {
             }
             else {
                 console.log("unknown token!");
+                socket.emit("removeToken");
                 // throw new Error("Unknown token!");
             }
         });
@@ -297,31 +298,36 @@ function playerSocketListeners(socket) {
     socket.on("stateChange", async (data) => {
         const roomName = socket.roomName;
         const serverState = roomPlayerState[roomName];
-        serverState.playerTime = data.playerTime;
-        if (isVideoEnd(serverState.currentVideo.duration,serverState.playerTime) ||
-            (data.playerState === 0 && serverState.playlist.length != 0)) { // video ends
-            serverState.playerState = data.playerState;
-            serverState.currentVideo = serverState.playlist.shift();
-            const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
-            wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
-            wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
-        }
-        else if (data.playerState !== -1){
-            wsServer.to(data.room).emit("stateChange", data); // Include emitter
-            serverState.playerState = data.playerState;
+        if (serverState !== undefined) {
             serverState.playerTime = data.playerTime;
-            console.log("Playertime:",serverState.playerTime, serverState.playerState, socket.nickname);
+            if (isVideoEnd(serverState.currentVideo.duration, serverState.playerTime) ||
+                (data.playerState === 0 && serverState.playlist.length != 0)) { // video ends
+                serverState.playerState = data.playerState;
+                serverState.currentVideo = serverState.playlist.shift();
+                const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
+                wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
+                wsServer.to(data.room).emit("updatePlaylist", serverState.playlist);
+            }
+            else if (data.playerState !== -1) {
+                wsServer.to(data.room).emit("stateChange", data); // Include emitter
+                serverState.playerState = data.playerState;
+                serverState.playerTime = data.playerTime;
+                console.log("Playertime:", serverState.playerTime, serverState.playerState, socket.nickname);
+            }
         }
     });
     socket.on("syncTime", (room, playerTime) => {
         // update serverTime
         const roomName = socket.roomName
         const serverState = roomPlayerState[roomName];
-        serverState.playerTime = playerTime;
-        const data = {
-            playerTime: playerTime,
-            playerState: serverState.playerState
-        };
+        if (serverState !== undefined) {
+            serverState.playerTime = playerTime;
+            const data = {
+                playerTime: playerTime,
+                playerState: serverState.playerState
+            };
+        }
+        // This causes loop
         // wsServer.to(room).emit("SyncTime", data);
     });
     socket.on("videoUrlChange", async (data) => {
@@ -329,10 +335,12 @@ function playerSocketListeners(socket) {
         const serverState = roomPlayerState[roomName];
         if (data.videoId != "") {
             serverState.currentVideo = await getMetadataFromVideoId(data);
-            serverState.playerTime = 0;
-            // send to all members in room
-            const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
-            wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
+            if (serverState.currentVideo !== undefined) {
+                serverState.playerTime = 0;
+                // send to all members in room
+                const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
+                wsServer.to(data.room).emit("videoUrlChange", serverState, videoInfo.comment);
+            }
         }
     });
     socket.on("addVideo", async (data) => {

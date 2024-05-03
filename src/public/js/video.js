@@ -1,3 +1,8 @@
+function isValidVideoUrl(url) {
+    var youtubeUrlPattern = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    return youtubeUrlPattern.test(url);
+}
+
 class VideoPlayer{
     constructor(socket, roomName) {
         this.socket = socket;
@@ -15,12 +20,12 @@ class VideoPlayer{
         this.commentDiv = document.getElementById("comment");
 
         this.handleVideoUrlSubmit = this.handleVideoUrlSubmit.bind(this);
-        this.handlePlaylistSubmit = this.handlePlaylistSubmit.bind(this);
+        this.handleAddPlaylistSubmit = this.handleAddPlaylistSubmit.bind(this);
         this.handleDirectPlaylist = this.handleDirectPlaylist.bind(this);
         this.sendCurrentPlaylist = this.sendCurrentPlaylist.bind(this);
         this.shuffleComments = this.shuffleComments.bind(this);
         this.playButton.addEventListener("click", this.handleVideoUrlSubmit);
-        this.addPlaylistButton.addEventListener("click", this.handlePlaylistSubmit);
+        this.addPlaylistButton.addEventListener("click", this.handleAddPlaylistSubmit);
         console.log("videoplayer init!");
     }
 
@@ -99,19 +104,6 @@ class VideoPlayer{
         videoChannel.appendChild(videoChannelSpan);
     }
     
-    handlePlaylistSubmit(event) {
-        event.preventDefault();
-        const input = document.getElementById("playNow");
-        const userColor = localStorage.getItem("chatColor");
-        socket.emit("addVideo", {
-            videoId: input.value,
-            room: roomName,
-            applicant: nickname,
-            applicantColor: userColor,
-        });
-        console.log("add playlist! - submit");
-        input.value = "";
-    }
     
     handleSwitchChatPlaylist() {
         const radios = document.querySelectorAll("label[name='radio']");
@@ -162,11 +154,29 @@ class VideoPlayer{
     handleVideoUrlSubmit(event){
         event.preventDefault();
         const input = appPlayer.querySelector("#playNow");
-        socket.emit("videoUrlChange", {
-            videoId: input.value,
-            room: roomName
-        });
-        console.log("video changed! - submit");
+        if (isValidVideoUrl(input.value)) {
+            socket.emit("videoUrlChange", {
+                videoId: input.value,
+                room: roomName
+            });
+            console.log("video changed! - submit");
+        }
+        input.value = "";
+    }
+
+    handleAddPlaylistSubmit(event) {
+        event.preventDefault();
+        const input = document.getElementById("playNow");
+        const userColor = localStorage.getItem("chatColor");
+        if (isValidVideoUrl(input.value)) {
+            socket.emit("addVideo", {
+                videoId: input.value,
+                room: roomName,
+                applicant: nickname,
+                applicantColor: userColor,
+            });
+            console.log("add playlist! - submit");
+        }
         input.value = "";
     }
 

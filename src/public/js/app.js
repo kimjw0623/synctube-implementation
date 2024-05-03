@@ -130,7 +130,7 @@ function handleRoomSubmit(event) {
         socket.emit("requestToken", roomName);
     }
     if (!localStorage.getItem("chatColor")) {
-        localStorage.setItem("chatColor", getRandomColorHex());
+        localStorage.setItem("chatColor", getRandomBrightColorHex());
     }
     const chatColor = localStorage.getItem("chatColor");
     data = {
@@ -174,4 +174,13 @@ function getRandomColorHex() {
     const randomColor = () => Math.floor(Math.random() * 256).toString(16);
     const color = `#${randomColor()}${randomColor()}${randomColor()}`;
     return color.length < 7 ? color + "0" : color;
+}
+
+function getRandomBrightColorHex() {
+    const r = Math.floor(Math.random() * 128) + 128; // 빨간색 성분 (128 이상)
+    const g = Math.floor(Math.random() * 128) + 128; // 녹색 성분 (128 이상)
+    const b = Math.floor(Math.random() * 128) + 128; // 파란색 성분 (128 이상)
+
+    const hexString = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    return hexString;
 }
