@@ -1,7 +1,7 @@
-const dbConfig = require('../config/db.config.js');
+import dbConfig from '../config/db.config.js';
+import { DataTypes, Sequelize } from 'sequelize';
 
-const Sequelize = require('sequelize');
-const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
+export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
 	host: dbConfig.HOST,
 	dialect: dbConfig.dialect,
 	operatorsAliases: false,
@@ -13,11 +13,25 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     }
 });
 
-const db = {};
+export const db = {};
 
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-db.tutorials = require("./user.model.js")(sequelize, Sequelize);
+import createVideoModel from './video.model.js';
+import createUserModel from './user.model.js';
+import createRoomModel from './room.model.js';
 
-module.exports = db;
+
+const videoTable = createVideoModel(sequelize, DataTypes);
+const userTable = createUserModel(sequelize, DataTypes);
+const roomTable = createRoomModel(sequelize, DataTypes);
+
+roomTable.belongsTo(videoTable, { foreignKey: 'video_id' });
+// videoTable.hasOne(roomTable, { foreignKey: 'id' });
+
+db.videoTable = videoTable;
+db.userTable = userTable;
+db.roomTable = roomTable;
+
+export default db;

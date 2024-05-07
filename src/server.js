@@ -8,6 +8,13 @@ import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
 import * as utils from "./util/utils.js";
 
+// const db = require("./db/models");
+import { db} from "./db/models/index.js";
+db.sequelize.sync();
+const videoTable = db.videoTable;
+const Op = db.Sequelize.Op;
+
+
 dotenv.config();
 
 const app = express();
