@@ -2,7 +2,7 @@
 export default (sequelize, DataTypes) => {
     const Message = sequelize.define("message", {
         user_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             references: {
                 model: 'users',
                 key: 'id'

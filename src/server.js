@@ -1,6 +1,6 @@
 import path from "path";
 import http from "http";
-import {Server} from "socket.io";
+import { Server } from "socket.io";
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -8,11 +8,12 @@ import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
 import * as utils from "./util/utils.js";
 
-// const db = require("./db/models");
-import { db} from "./db/models/index.js";
-db.sequelize.sync();
+import { db } from "./db/models/index.js";
+db.sequelize.sync({force: false}); // If true: initialize DB
 const videoTable = db.videoTable;
 const Op = db.Sequelize.Op;
+
+const USER_COOKIE_KEY = 'USER';
 
 
 dotenv.config();
@@ -26,17 +27,84 @@ const wsServer = new Server(httpServer, {
     },
 });
 
+// x-www-form-urlencoded 타입의 form 데이터를 파싱하기 위한 미들웨어
+// 클라이언트로부터 받은 URL 인코딩 형태의 데이터를 파싱하여, req.body 오브젝트로 만들어주는 역할
+// 이렇게 하면, 서버에서는 req.body를 통해 사용자가 폼에 입력한 데이터에 접근할 수 있음
+app.use(express.urlencoded({ extended: true }));
+
 // Application Settings
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
 
 // Routes
-app.get("/", (_, res) => res.render("home"));
-app.get("/test/", (_, res) => res.render("test", {
-    playlist: ["qwer","asdf"],
-    chatMessages: ["qwer","asdf"]
-}));
+app.get("/", (req, res) => res.render("home")); // TODO: check cookie data!
+app.get("/signup", (_, res) => res.render("signup"));
+app.get("/login", (_, res) => res.render("login"));
+
+app.post('/signup', async (req, res) => {
+    try {
+        const { userId, nickname, password } = req.body;
+        const userRows = await db.userTable.findAll({
+            where: {
+                id: userId
+            }
+        });
+        if (userRows.length === 0) {
+            try {
+                const newUser = await db.userTable.create({
+                    id: userId,
+                    nickname: nickname,
+                    password: password
+                });
+                console.log('inserted:', newUser);
+            } catch (error) {
+                console.error('Error inserting user:', error);
+            }
+        }
+        else {
+            console.error('Duplicate userId:', userId);
+            res.status(400).send(`아이디가 중복됩니다(${userId}). 다시 시도해 주세요.`);
+            return;
+        }
+
+        // // db에 저장된 user 객체를 문자열 형태로 변환하여 쿠키에 저장
+        res.cookie(USER_COOKIE_KEY, JSON.stringify(newUser));
+        // 가입 완료 후, 루트 페이지로 이동
+        res.redirect('/');
+        // res.status(201).send('User created');
+
+    } catch (error) {
+        console.error("error");
+        // res.status(500).send(error.message);
+    }
+});
+
+app.post('/login', async (req, res) => {
+    try {
+        const { userId, password } = req.body;
+        const user = await db.userTable.findOne({ where: { id: userId } });
+
+        if (user && (password === user.password)) {
+            // JWT 토큰 생성
+            const token = jwt.sign(
+                { userId: user.id },
+                'yourSecretKey',
+                { expiresIn: '2h' }
+            );
+
+            // db에 저장된 user 객체를 문자열 형태로 변환하여 쿠키에 저장
+            res.cookie(USER_COOKIE_KEY, JSON.stringify(user));
+            // 로그인(쿠키 발급) 후, 루트 페이지로 이동
+            res.redirect('/');
+        } else {
+            res.status(400).send(`해당 정보의 아이디가 존재하지 않습니다. (${userId}). 다시 시도해 주세요.`);
+        }
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
 
 // In-memory data storage (should be replaced with DB for production)
 const tokenNicknameDict = {};
@@ -57,7 +125,7 @@ async function initializeServer(serverState) {
     await utils.insertVideoDB(initVideo);
     let videoInfo = await utils.readVideoDB(initVideo);
     serverState.currentVideo = parseVideoMetadata(videoInfo.metadata);
-    
+
     if (initPlaylist.length != 0) {
         for (const videoId of initPlaylist) {
             await utils.insertVideoDB(videoId);
@@ -68,19 +136,19 @@ async function initializeServer(serverState) {
     return serverState
 }
 
-function publicRooms(){
+function publicRooms() {
     const sids = wsServer.sockets.adapter.sids;
     const rooms = wsServer.sockets.adapter.rooms;
     const publicRooms = [];
     rooms.forEach((_, key) => {
-        if(sids.get(key) === undefined){
+        if (sids.get(key) === undefined) {
             publicRooms.push(key);
         }
     });
     return publicRooms;
 }
 
-function countRoom(roomName){
+function countRoom(roomName) {
     return wsServer.sockets.adapter.rooms.get(roomName).size;
 }
 
@@ -118,7 +186,7 @@ function getYoutubeVideoId(url) {
     return searchParams.get("v");
 }
 
-function parseVideoMetadata(response, data=null) {
+function parseVideoMetadata(response, data = null) {
     const id = response.items[0].id;
     const title = response.items[0].snippet.title;
     const thumbnailUrl = response.items[0].snippet.thumbnails.default.url;
@@ -193,7 +261,7 @@ function connectionSocketListeners(socket) {
         // Give token and nickname when enter room
         const nickname = generateUsername("", 0, 15);
         socket.nickname = nickname;
-        const token = jwt.sign({ nickname: nickname}, secretKey, { expiresIn: '1d' });
+        const token = jwt.sign({ nickname: nickname }, secretKey, { expiresIn: '1d' });
         socket.jwt = token;
         tokenNicknameDict[token] = nickname;
         tokenRoomDict[token] = roomName;
@@ -205,7 +273,7 @@ function connectionSocketListeners(socket) {
         const result = removeUserFromList(roomUser[roomName], oldNickname);
         roomUser[roomName] = result.userList;
         const targetColor = result.targetColor;
-        roomUser[roomName].push({nickname: newNickname, color: targetColor});
+        roomUser[roomName].push({ nickname: newNickname, color: targetColor });
         roomUser[roomName].sort();
         console.log(roomUser[roomName]);
         socket.nickname = newNickname;
@@ -275,7 +343,7 @@ function connectionSocketListeners(socket) {
             roomUser[roomName] = result.userList;
             wsServer.to(roomName).emit("updateUserList", result.userList);
         }
-        
+
     });
     socket.on("leaveRoom", (roomName) => {
         socket.leave(roomName, () => {

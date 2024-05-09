@@ -2,9 +2,11 @@
 export default (sequelize, DataTypes) => {
     const User = sequelize.define("user", {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             primaryKey: true,
-            autoIncrement: true
+        },
+        password: {
+            type: DataTypes.STRING
         },
         token: {
             type: DataTypes.STRING

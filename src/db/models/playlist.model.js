@@ -2,7 +2,7 @@
 export default (sequelize, DataTypes) => {
     const Playlist = sequelize.define("playlist", {
         user_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             references: {
                 model: 'users',
                 key: 'id'
