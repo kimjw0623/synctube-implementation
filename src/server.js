@@ -6,6 +6,7 @@ import fetch from "node-fetch";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
+import cookieParser from 'cookie-parser';
 import * as utils from "./util/utils.js";
 
 import { db } from "./db/models/index.js";
@@ -14,7 +15,6 @@ const videoTable = db.videoTable;
 const Op = db.Sequelize.Op;
 
 const USER_COOKIE_KEY = 'USER';
-
 
 dotenv.config();
 
@@ -31,6 +31,8 @@ const wsServer = new Server(httpServer, {
 // 클라이언트로부터 받은 URL 인코딩 형태의 데이터를 파싱하여, req.body 오브젝트로 만들어주는 역할
 // 이렇게 하면, 서버에서는 req.body를 통해 사용자가 폼에 입력한 데이터에 접근할 수 있음
 app.use(express.urlencoded({ extended: true }));
+// 쿠키를 파싱하기 위한 미들웨어
+app.use(cookieParser());
 
 // Application Settings
 app.set("view engine", "pug");
@@ -38,7 +40,29 @@ app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
 
 // Routes
-app.get("/", (req, res) => res.render("home")); // TODO: check cookie data!
+// TODO: check cookie data!
+app.get("/", async (req, res) => {
+    const userCookie = req.cookies[USER_COOKIE_KEY];
+    if (userCookie) {
+        const userData = JSON.parse(userCookie);
+        if (userData.length !== 0) {
+            const userRows = await db.userTable.findAll({
+                where: {
+                    id: userData.id
+                }
+            });
+            if (userRows.length !== 0) {
+                res.render('home');
+                return;
+            }
+        }
+    }
+    res.redirect('/login');
+}); 
+app.get('/logout', (req, res) => {
+    res.clearCookie(USER_COOKIE_KEY);
+    res.redirect('/');
+});
 app.get("/signup", (_, res) => res.render("signup"));
 app.get("/login", (_, res) => res.render("login"));
 
@@ -50,13 +74,16 @@ app.post('/signup', async (req, res) => {
                 id: userId
             }
         });
+        let newUser
+        let userDict
         if (userRows.length === 0) {
             try {
-                const newUser = await db.userTable.create({
+                userDict = {
                     id: userId,
                     nickname: nickname,
                     password: password
-                });
+                }
+                newUser = await db.userTable.create(userDict);
                 console.log('inserted:', newUser);
             } catch (error) {
                 console.error('Error inserting user:', error);
@@ -67,16 +94,11 @@ app.post('/signup', async (req, res) => {
             res.status(400).send(`아이디가 중복됩니다(${userId}). 다시 시도해 주세요.`);
             return;
         }
-
-        // // db에 저장된 user 객체를 문자열 형태로 변환하여 쿠키에 저장
-        res.cookie(USER_COOKIE_KEY, JSON.stringify(newUser));
-        // 가입 완료 후, 루트 페이지로 이동
+        res.cookie(USER_COOKIE_KEY, JSON.stringify(userDict));
         res.redirect('/');
-        // res.status(201).send('User created');
 
     } catch (error) {
-        console.error("error");
-        // res.status(500).send(error.message);
+        console.error(error.message);
     }
 });
 
@@ -92,10 +114,7 @@ app.post('/login', async (req, res) => {
                 'yourSecretKey',
                 { expiresIn: '2h' }
             );
-
-            // db에 저장된 user 객체를 문자열 형태로 변환하여 쿠키에 저장
             res.cookie(USER_COOKIE_KEY, JSON.stringify(user));
-            // 로그인(쿠키 발급) 후, 루트 페이지로 이동
             res.redirect('/');
         } else {
             res.status(400).send(`해당 정보의 아이디가 존재하지 않습니다. (${userId}). 다시 시도해 주세요.`);
@@ -104,7 +123,6 @@ app.post('/login', async (req, res) => {
         res.status(500).send(error.message);
     }
 });
-
 
 // In-memory data storage (should be replaced with DB for production)
 const tokenNicknameDict = {};
