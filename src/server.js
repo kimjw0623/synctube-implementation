@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import { generateUsername } from "unique-username-generator";
 import cookieParser from 'cookie-parser';
 import * as utils from "./util/utils.js";
+import cors from "cors";
 
 import { db } from "./db/models/index.js";
 db.sequelize.sync({force: false}); // If true: initialize DB
@@ -30,6 +31,7 @@ const wsServer = new Server(httpServer, {
 // x-www-form-urlencoded 타입의 form 데이터를 파싱하기 위한 미들웨어
 // 클라이언트로부터 받은 URL 인코딩 형태의 데이터를 파싱하여, req.body 오브젝트로 만들어주는 역할
 // 이렇게 하면, 서버에서는 req.body를 통해 사용자가 폼에 입력한 데이터에 접근할 수 있음
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // 쿠키를 파싱하기 위한 미들웨어
 app.use(cookieParser());
@@ -38,7 +40,7 @@ app.use(cookieParser());
 app.set("view engine", "pug");
 app.set("views", "./src/views");
 app.use("/public", express.static("./src/public"));
-
+app.use(cors());
 // Routes
 // TODO: check cookie data!
 app.get("/", async (req, res) => {
@@ -106,7 +108,6 @@ app.post('/login', async (req, res) => {
     try {
         const { userId, password } = req.body;
         const user = await db.userTable.findOne({ where: { id: userId } });
-
         if (user && (password === user.password)) {
             // JWT 토큰 생성
             const token = jwt.sign(
@@ -116,10 +117,12 @@ app.post('/login', async (req, res) => {
             );
             res.cookie(USER_COOKIE_KEY, JSON.stringify(user));
             res.redirect('/');
+            console.log("login success")
         } else {
             res.status(400).send(`해당 정보의 아이디가 존재하지 않습니다. (${userId}). 다시 시도해 주세요.`);
         }
     } catch (error) {
+        console.log("error");
         res.status(500).send(error.message);
     }
 });
