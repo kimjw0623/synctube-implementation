@@ -17,9 +17,10 @@ html(lang="en")
         .container-fluid
             .start-container#welcome
                 h2 SYNCTUBE
-                form.room-form
-                    input(placeholder="Room name", required, type="text")
-                    button.btn.btn-outline-light(type="submit") Enter Room
+                form.room-form.mt-3
+                    input(placeholder="Room name",class="form-control", required, type="text")
+                    div.mt-3
+                        button.btn.btn-outline-light.btn-block(type="submit") Enter Room
                 .open-rooms#roomList
                     h4 Open Rooms:
                     ul

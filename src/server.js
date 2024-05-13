@@ -28,10 +28,11 @@ const wsServer = new Server(httpServer, {
     },
 });
 
+// json 을 파싱하기 위한 미들웨어
+app.use(express.json());
 // x-www-form-urlencoded 타입의 form 데이터를 파싱하기 위한 미들웨어
 // 클라이언트로부터 받은 URL 인코딩 형태의 데이터를 파싱하여, req.body 오브젝트로 만들어주는 역할
 // 이렇게 하면, 서버에서는 req.body를 통해 사용자가 폼에 입력한 데이터에 접근할 수 있음
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // 쿠키를 파싱하기 위한 미들웨어
 app.use(cookieParser());
@@ -71,34 +72,28 @@ app.get("/login", (_, res) => res.render("login"));
 app.post('/signup', async (req, res) => {
     try {
         const { userId, nickname, password } = req.body;
+        console.log("body", req.body);
         const userRows = await db.userTable.findAll({
             where: {
                 id: userId
             }
         });
-        let newUser
-        let userDict
         if (userRows.length === 0) {
-            try {
-                userDict = {
-                    id: userId,
-                    nickname: nickname,
-                    password: password
-                }
-                newUser = await db.userTable.create(userDict);
-                console.log('inserted:', newUser);
-            } catch (error) {
-                console.error('Error inserting user:', error);
+            const userDict = {
+                id: userId,
+                nickname: nickname,
+                password: password
             }
+            const newUser = await db.userTable.create(userDict);
+            res.cookie(USER_COOKIE_KEY, JSON.stringify(userDict));
+            res.redirect('/');
+            console.log("Signup success:", newUser);
         }
         else {
             console.error('Duplicate userId:', userId);
             res.status(400).send(`아이디가 중복됩니다(${userId}). 다시 시도해 주세요.`);
             return;
         }
-        res.cookie(USER_COOKIE_KEY, JSON.stringify(userDict));
-        res.redirect('/');
-
     } catch (error) {
         console.error(error.message);
     }
@@ -117,12 +112,12 @@ app.post('/login', async (req, res) => {
             );
             res.cookie(USER_COOKIE_KEY, JSON.stringify(user));
             res.redirect('/');
-            console.log("login success")
+            console.log("login success");
         } else {
             res.status(400).send(`해당 정보의 아이디가 존재하지 않습니다. (${userId}). 다시 시도해 주세요.`);
         }
     } catch (error) {
-        console.log("error");
+        console.log(error.message);
         res.status(500).send(error.message);
     }
 });
