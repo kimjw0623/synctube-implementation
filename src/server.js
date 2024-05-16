@@ -11,7 +11,7 @@ import * as utils from "./util/utils.js";
 import cors from "cors";
 
 import { db } from "./db/models/index.js";
-db.sequelize.sync({force: false}); // If true: initialize DB
+db.sequelize.sync({ force: false }); // If true: initialize DB
 const videoTable = db.videoTable;
 const Op = db.Sequelize.Op;
 
@@ -61,7 +61,7 @@ app.get("/", async (req, res) => {
         }
     }
     res.redirect('/login');
-}); 
+});
 app.get('/logout', (req, res) => {
     res.clearCookie(USER_COOKIE_KEY);
     res.redirect('/');
@@ -116,6 +116,14 @@ app.post('/login', async (req, res) => {
         } else {
             res.status(400).send(`해당 정보의 아이디가 존재하지 않습니다. (${userId}). 다시 시도해 주세요.`);
         }
+
+        wsServer.on("connection", (socket) => { // socket connection
+            wsServer.sockets.emit("roomChange", publicRooms());
+            // authAndJoinRoom(socket);
+            connectionSocketListeners(socket);
+            playerSocketListeners(socket);
+        });
+
     } catch (error) {
         console.log(error.message);
         res.status(500).send(error.message);
@@ -304,36 +312,54 @@ function connectionSocketListeners(socket) {
         // Join room and emit 
         socket.join(roomName);
         done();
-        if (!(roomName in roomMessage)) {
-            console.log("First Message!", roomName);
-            roomMessage[roomName] = [];
-        }
-        console.log(socket.nickname);
 
-        if (!(roomName in roomUser)) { // First client in the room
-            console.log("First user!", roomName);
-            roomUser[roomName] = [{
-                nickname: socket.nickname,
-                color: chatColor
-            }];
-            const serverState = {
-                currentVideo: {},
-                playerState: -1,
-                playerTime: 0,
-                playerVolume: 20,
-                playlist: []
-            };
-            roomPlayerState[roomName] = serverState;
-            roomPlayerState[roomName] = await initializeServer(roomPlayerState[roomName]);
+        // Check if the User exists in User table
+        let participantRows = await db.participantTable.findOne({ where: { user_id: socket.nickname } });
+        if (participantRows.length === 0) {
+            console.log("Invalid User!")
+            return
         }
-        else {
-            roomUser[roomName].push({
-                nickname: socket.nickname,
-                color: chatColor
+        // Check if the room exists in Room table
+        let roomRows = await db.roomTable.findOne({ where: { id: roomName } });
+        // If room doesn't exist, initialize
+        if (roomRows.length === 0) {
+            const newUser = await db.userTable.create({
+                id: roomName,
+                title: roomName,
+                player_current_time: 0,
+                player_current_state: 0
             });
-            roomUser[roomName].sort();
         }
-        console.log(roomUser[roomName]);
+
+        // Get all user_ids in the room
+        participantRows = await db.participantTable.findAll({ where: { room_id: roomName } });
+        // Get all messages in the room
+        const messageRows = await db.messageTable.findAll({
+            where: { room_id: roomName },
+            order: ['timestamp', 'ASC']
+        });
+        // Get all rooms
+        roomRows = await db.roomTable.findAll({
+            order: ['room_id', 'ASC']
+        });
+        // Get room info
+        const roomRow = await db.roomTable.findOne({ where: { id: roomName } });
+        // Get comment of current video of the room
+        if (roomRow['video_id'] !== undefined) {
+            const commentRows = await db.commentTable.findAll({
+                where: {
+                    video_id: roomRow['video_id']
+                }
+            });
+        }
+        // Get playlist
+        const currentPlaylist = await db.playlistTable.findAll({
+            where: {
+                room_id: roomName
+            },
+            order: ['video_order', 'ASC']
+        })
+
         wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
         wsServer.sockets.emit("roomChange", publicRooms());
         const serverState = roomPlayerState[roomName];
@@ -452,12 +478,6 @@ function playerSocketListeners(socket) {
     });
 }
 
-wsServer.on("connection", (socket) => { // socket connection
-    wsServer.sockets.emit("roomChange", publicRooms());
-    authAndJoinRoom(socket);
-    connectionSocketListeners(socket);
-    playerSocketListeners(socket);
-});
 
 // Start the server
 const port = process.env.PORT || 3000;

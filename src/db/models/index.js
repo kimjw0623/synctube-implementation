@@ -86,5 +86,6 @@ db.roomTable = roomTable;
 db.messageTable = messageTable;
 db.commentTable = commentTable;
 db.playlistTable = playlistTable;
+db.participantTable = participantTable;
 
 export default db;
