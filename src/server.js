@@ -118,6 +118,7 @@ app.post('/login', async (req, res) => {
         }
 
         wsServer.on("connection", (socket) => { // socket connection
+            socket.username = userId
             wsServer.sockets.emit("roomChange", publicRooms());
             // authAndJoinRoom(socket);
             connectionSocketListeners(socket);
@@ -306,46 +307,50 @@ function connectionSocketListeners(socket) {
         wsServer.to(roomName).emit("updateUserList", roomUser[roomName], newNickname);
     });
     socket.on("enterRoom", async (data, socketId, done) => {
-        const roomName = data.roomName;
+        const roomName = parseInt(data.roomName);
         const chatColor = data.userColor;
         socket.roomName = roomName;
         // Join room and emit 
         socket.join(roomName);
         done();
 
-        // Check if the User exists in User table
-        let participantRows = await db.participantTable.findOne({ where: { user_id: socket.nickname } });
-        if (participantRows.length === 0) {
-            console.log("Invalid User!")
-            return
-        }
         // Check if the room exists in Room table
-        let roomRows = await db.roomTable.findOne({ where: { id: roomName } });
+        let roomRow = await db.roomTable.findOne({ where: { id: roomName } });
         // If room doesn't exist, initialize
-        if (roomRows.length === 0) {
-            const newUser = await db.userTable.create({
-                id: roomName,
+        if (roomRow === null) {
+            const newUser = await db.roomTable.create({
+                id: parseInt(roomName),
                 title: roomName,
                 player_current_time: 0,
                 player_current_state: 0
             });
         }
-
+        
+        // Check if the User exists in User table
+        // if not exist: findOne: null, findAll: empty list ([])
+        let participantRow = await db.participantTable.findOne({ where: { user_id: socket.username } });
+        if (participantRow === null) {
+            const newParticipant = await db.participantTable.create({
+                user_id: socket.username,
+                room_id: socket.roomName
+            });
+        }
+        
         // Get all user_ids in the room
-        participantRows = await db.participantTable.findAll({ where: { room_id: roomName } });
+        const participantRows = await db.participantTable.findAll({ where: { room_id: roomName } });
         // Get all messages in the room
         const messageRows = await db.messageTable.findAll({
             where: { room_id: roomName },
-            order: ['timestamp', 'ASC']
+            order: [['timestamp', 'ASC']]
         });
         // Get all rooms
-        roomRows = await db.roomTable.findAll({
-            order: ['room_id', 'ASC']
+        let roomRows = await db.roomTable.findAll({
+            order: [['id', 'ASC']]
         });
         // Get room info
-        const roomRow = await db.roomTable.findOne({ where: { id: roomName } });
+        roomRow = await db.roomTable.findOne({ where: { id: roomName } });
         // Get comment of current video of the room
-        if (roomRow['video_id'] !== undefined) {
+        if (roomRow['video_id'] !== null) {
             const commentRows = await db.commentTable.findAll({
                 where: {
                     video_id: roomRow['video_id']
@@ -357,12 +362,13 @@ function connectionSocketListeners(socket) {
             where: {
                 room_id: roomName
             },
-            order: ['video_order', 'ASC']
+            order: [['video_order', 'ASC']]
         })
 
-        wsServer.to(roomName).emit("welcome", roomUser[roomName], socket.nickname, roomMessage[roomName]);
-        wsServer.sockets.emit("roomChange", publicRooms());
-        const serverState = roomPlayerState[roomName];
+        wsServer.to(roomName).emit("updateRoom", participantRows, messageRows);
+        wsServer.sockets.emit("updateRoomlist", publicRooms());
+
+        const serverState = roomRow //roomPlayerState[roomName];
         const videoInfo = await utils.readVideoDB(serverState.currentVideo.id);
         wsServer.to(socketId).emit("initState", serverState, videoInfo.comment);
         wsServer.to(socketId).emit("updatePlaylist", serverState.playlist);

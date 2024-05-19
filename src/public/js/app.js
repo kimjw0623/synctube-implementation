@@ -47,7 +47,7 @@ function initRoomSocketListener(socket) {
         initPlayerSocketListener(socket,videoPlayer);
     });
 
-    socket.on("welcome", (users, user, messages) => {
+    socket.on("updateRoom", (users, messages) => {
         const h3 = room.querySelector("h3");
         client.loadMessage(messages);
         client.loadUserList(users);
@@ -59,7 +59,7 @@ function initRoomSocketListener(socket) {
     });
 
     // Reload roomlist if any player enters/exits the room
-    socket.on("roomChange", (rooms) => {
+    socket.on("updateRoomlist", (rooms) => {
         const roomList = welcome.querySelector("ul");
         roomList.innerHTML = "";
         rooms.forEach((room) => {
